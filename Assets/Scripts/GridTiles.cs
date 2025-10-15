@@ -1,27 +1,46 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
-public class GridTiles: BaseMonoBehaviour
+public class GridTiles: BaseMonoBehaviour, IObservable
 {
     public int gridSizeX;
     public int gridSizeY;
     public float cellSize = 1f;
     private Tile[,] _tiles;
+    private TileObject[,] _tileObjects;
     
     private ObjectPool<TileObject> _tileObjectPool;
     [SerializeField]
     private TileObject _tileObjectPrefab;
+    
+    private List<IObserver> _allObservers = new();
 
     private void Awake()
     {
         _tileObjectPool = new ObjectPool<TileObject>(FactoryTiles, TileObject.TurnOn, TileObject.TurnOff, gridSizeX * gridSizeY);
     }
+    protected override void Start()
+    {
+        base.Start();
+        CreateGrid();
+    }
+    public void Subscribe(IObserver observer)
+    {
+        if(!_allObservers.Contains(observer))
+            _allObservers.Add(observer);
+    }
 
+    public void Unsubscribe(IObserver observer)
+    {
+        if(_allObservers.Contains(observer))
+            _allObservers.Remove(observer);
+    }
+    
     public void CreateGrid()
     {
         _tiles = new Tile[gridSizeX, gridSizeY];
+        _tileObjects = new TileObject[gridSizeX, gridSizeY];
         for (int y = 0; y < gridSizeY; y++)
         {
             for (int x = 0; x < gridSizeX; x++)
@@ -35,14 +54,24 @@ public class GridTiles: BaseMonoBehaviour
                 obj.grid = this;
                 obj.UpdatePosition();
                 obj.UpdateSprite();
+                CreateGridTileObjects(obj, x, y);
             }
         }
     }
 
-    protected override void Start()
+    private void CreateGridTileObjects(TileObject to, int x, int y) => _tileObjects[x, y] = to;
+
+    public TileObject GetTileObjectFromTile(Tile tile)
     {
-        base.Start();
-        CreateGrid();
+        for (int y = 0; y < gridSizeY; y++)
+        {
+            for (int x = 0; x < gridSizeX; x++)
+            {
+                if(_tiles[x,y] == tile)
+                    return _tileObjects[x,y];
+            }
+        }
+        return null;
     }
 
     private TileObject FactoryTiles() => Instantiate(_tileObjectPrefab);
@@ -61,51 +90,6 @@ public class GridTiles: BaseMonoBehaviour
             if (t != null) result.Add(t);
         }
         return result;
-    }
-
-    public void RemoveFirstLayer()
-    {
-        if (_tiles == null) return;
-
-        for (int x = 0; x < gridSizeX; x++)
-        {
-            Tile tile = _tiles[x, 0];
-            if (tile == null) continue;
-            
-            for (int i = 0; i < transform.childCount; i++)
-            {
-                var to = transform.GetChild(i).GetComponent<TileObject>();
-                if (to != null && to.Tile == tile)
-                {
-                    _tileObjectPool.ReturnObject(to);
-                    break;
-                }
-            }
-        }
-        
-        for (int y = 1; y < gridSizeY; y++)
-        {
-            for (int x = 0; x < gridSizeX; x++)
-            {
-                _tiles[x, y - 1] = _tiles[x, y];
-                if (_tiles[x, y - 1] != null)
-                {
-                    _tiles[x, y - 1].positionGrid = new Vector2(x, y - 1);
-                }
-            }
-        }
-
-        int topY = gridSizeY - 1;
-        for (int x = 0; x < gridSizeX; x++)
-            _tiles[x, topY] = null;
-        
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            var to = transform.GetChild(i).GetComponent<TileObject>();
-            if (to == null || !to.gameObject.activeSelf || to.Tile == null) continue;
-            to.UpdatePosition();
-            to.UpdateSprite();
-        }
     }
     public void RemoveFirstLayerAtColumn(int xRow)
     {
@@ -140,25 +124,11 @@ public class GridTiles: BaseMonoBehaviour
             to.UpdatePosition();
             to.UpdateSprite();
         }
-    }
 
-    public override void OnUpdate()
-    {
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            var x = GetFirstLayer();
-            foreach (var tile in x)
-            {
-                Debug.Log(tile.id, transform.GetChild(x.IndexOf(tile)).GetComponent<TileObject>().gameObject);
-            }
-        }
-        if (Input.GetKeyDown(KeyCode.B))
-        {
-            int x = Random.Range(0, gridSizeX);
-            Debug.Log(x);
-            RemoveFirstLayerAtColumn(x);
-        }
+        foreach (var item in _allObservers)
+            item.OnNotify();
     }
+    
 
     private void OnDrawGizmosSelected()
     {
@@ -185,4 +155,6 @@ public class GridTiles: BaseMonoBehaviour
             }
         }
     }
+
+   
 }

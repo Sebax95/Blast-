@@ -5,9 +5,8 @@ using UnityEngine.Serialization;
 public class TileObject : BaseMonoBehaviour
 {
     public GridTiles grid;
-    private Tile _tile;
     private TileView _tileView;
-    public Tile Tile { get => _tile; set => _tile = value; }
+    public Tile Tile { get; set; }
 
     private void Awake()
     {
@@ -36,5 +35,5 @@ public class TileObject : BaseMonoBehaviour
     public void UpdateSprite() => _tileView.UpdateSprite(Tile.color);
 
     public void UpdatePosition() =>
-        transform.position = grid.GetTilePosition((int)_tile.positionGrid.x, (int)_tile.positionGrid.y);
+        transform.position = grid.GetTilePosition((int)Tile.positionGrid.x, (int)Tile.positionGrid.y);
 }
