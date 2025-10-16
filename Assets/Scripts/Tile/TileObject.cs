@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -35,6 +36,6 @@ public class TileObject : BaseMonoBehaviour
     public void UpdateSprite() => _tileView.UpdateSprite(Tile.color);
     public void OrderLayer() => _tileView.OrderLayer((int)Tile.positionGrid.y);
 
-    public void UpdatePosition() =>
-        transform.position = grid.GetTilePosition(Tile.positionGrid.x, Tile.positionGrid.y);
+    public void UpdatePosition(TweenCallback callback = null) =>
+        transform.DOMove(grid.GetTilePosition(Tile.positionGrid.x, Tile.positionGrid.y), 0.1f).SetEase(Ease.Flash).OnComplete(callback);
 }

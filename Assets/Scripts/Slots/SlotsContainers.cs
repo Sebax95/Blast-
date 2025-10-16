@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class SlotsContainers : BaseMonoBehaviour
@@ -8,7 +9,7 @@ public class SlotsContainers : BaseMonoBehaviour
     private Slot _slotPrefab;
     [SerializeField]
     private float _spaceing;
-
+    
     protected override void Start()
     {
         base.Start();
@@ -40,4 +41,6 @@ public class SlotsContainers : BaseMonoBehaviour
             slot.transform.localPosition = new Vector3(startX + i * _spaceing, 0, 0);
         }
     }
+    
+    public Slot GetFirstSlotEnable() => slots.FirstOrDefault(s => !s.isUsed);
 }

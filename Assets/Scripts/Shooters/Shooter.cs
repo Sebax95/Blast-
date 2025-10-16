@@ -1,19 +1,27 @@
 using System;
 using System.Collections;
+using System.Linq;
+using DG.Tweening;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class Shooter : BaseMonoBehaviour, IObserver
+public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
 {
     private ShooterView _view;
     public ColorTile color;
     public int quantityBullets;
     public float speedShooting;
-    public Slot slotSelected;
+    private Slot _slotSelected;
     public TileObject Target { get; set; }
     private GridTiles _gridTiles;
     private bool _canProceed;
 
+    private SlotsContainers _slotsContainers;
+    
     private Coroutine _ShootCoroutine;
+
+    private bool _isUsed;
+    public bool IsPickeable { get; set; }
 
     private void OnEnable() => _gridTiles.Subscribe(this);
 
@@ -24,26 +32,24 @@ public class Shooter : BaseMonoBehaviour, IObserver
         _gridTiles = FindAnyObjectByType<GridTiles>();
         _view = GetComponent<ShooterView>();
         _canProceed = true;
+        _isUsed = false;
     }
 
     protected override void Start()
     {
         base.Start();
         _view.SetColor(color);
+        _view.SetText(quantityBullets.ToString());
+        _slotsContainers = FindAnyObjectByType<SlotsContainers>();
     }
 
     public void OnSelectedSlot()
     {
         _ShootCoroutine = StartCoroutine(Shoot());
+        transform.DOMove(_slotSelected.transform.position, .2f).SetEase(Ease.InCubic);
+        transform.SetParent(_slotSelected.transform);
     }
-
-    public override void OnUpdate()
-    {
-        if(Input.GetKeyDown(KeyCode.A))
-        {
-            OnSelectedSlot();
-        }
-    }
+    
 
     private IEnumerator Shoot()
     {
@@ -55,20 +61,21 @@ public class Shooter : BaseMonoBehaviour, IObserver
 
             _gridTiles.RemoveFirstLayerAtColumn((int)Target.Tile.positionGrid.x);
             quantityBullets--;
+            _view.SetText(quantityBullets.ToString());
             yield return new WaitForSeconds(speedShooting);
         }
+        _view.Die();
+        _slotSelected.RestartSlot();
     }
 
     private bool ChangeTarget()
     {
         var firstLayer = _gridTiles.GetFirstLayer();
-        foreach (var tile in firstLayer)
+        foreach (var tile in firstLayer.Where(tile => tile.color == color && !tile.isSelected))
         {
-            if (tile.color == color)
-            {
-                Target = _gridTiles.GetTileObjectFromTile(tile);
-                return true;
-            }
+            Target = _gridTiles.GetTileObjectFromTile(tile);
+            Target.Tile.isSelected = true;
+            return true;
         }
         _canProceed = false;
         return Target != null;
@@ -81,5 +88,18 @@ public class Shooter : BaseMonoBehaviour, IObserver
         if (_canProceed) return;
         if(ChangeTarget())
             _canProceed = true;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if(_isUsed || !IsPickeable)
+            return;
+        _slotSelected = _slotsContainers.GetFirstSlotEnable();
+        if(_slotSelected == null)
+            return;
+        _slotSelected.SetShooter(this);
+        _isUsed = true;
+        ShooterContainer.OnShooterSelected(this);
+        OnSelectedSlot();
     }
 }
