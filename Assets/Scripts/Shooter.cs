@@ -1,10 +1,10 @@
 using System;
 using System.Collections;
-using System.Linq;
 using UnityEngine;
 
 public class Shooter : BaseMonoBehaviour, IObserver
 {
+    private ShooterView _view;
     public ColorTile color;
     public int quantityBullets;
     public float speedShooting;
@@ -22,7 +22,14 @@ public class Shooter : BaseMonoBehaviour, IObserver
     private void Awake()
     {
         _gridTiles = FindAnyObjectByType<GridTiles>();
+        _view = GetComponent<ShooterView>();
         _canProceed = true;
+    }
+
+    protected override void Start()
+    {
+        base.Start();
+        _view.SetColor(color);
     }
 
     public void OnSelectedSlot()
@@ -67,8 +74,10 @@ public class Shooter : BaseMonoBehaviour, IObserver
         return Target != null;
     }
 
-    public void OnNotify()
+    public void OnNotify(ObserverMessage message)
     {
+        if(message != ObserverMessage.UpdateRow)
+            return;
         if (_canProceed) return;
         if(ChangeTarget())
             _canProceed = true;

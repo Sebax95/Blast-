@@ -1,4 +1,9 @@
 ﻿public interface IObserver
 {
-    void OnNotify();
+    void OnNotify(ObserverMessage message);
+}
+
+public enum ObserverMessage
+{
+    UpdateRow
 }

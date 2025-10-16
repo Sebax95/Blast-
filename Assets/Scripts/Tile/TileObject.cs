@@ -33,7 +33,8 @@ public class TileObject : BaseMonoBehaviour
     #endregion
     
     public void UpdateSprite() => _tileView.UpdateSprite(Tile.color);
+    public void OrderLayer() => _tileView.OrderLayer((int)Tile.positionGrid.y);
 
     public void UpdatePosition() =>
-        transform.position = grid.GetTilePosition((int)Tile.positionGrid.x, (int)Tile.positionGrid.y);
+        transform.position = grid.GetTilePosition(Tile.positionGrid.x, Tile.positionGrid.y);
 }
