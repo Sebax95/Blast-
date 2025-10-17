@@ -16,19 +16,18 @@ public class ShooterView : BaseMonoBehaviour
 
     public void SetColor(ColorTile color)
     {
-        switch (color)
+        _sp.color = color switch
         {
-            case ColorTile.Blue: _sp.color = Color.blue; break;
-            case ColorTile.Red: _sp.color = Color.red; break;
-            case ColorTile.Green: _sp.color = Color.green; break;
-            case ColorTile.Yellow: _sp.color = Color.yellow; break;
-            case ColorTile.Purple: _sp.color = Color.magenta; break;
-            case ColorTile.Orange: _sp.color = new Color(1f, 0.5f, 0f); break;
-            case ColorTile.Pink: _sp.color = new Color(1f, 0.41f, 0.71f); break;
-            case ColorTile.White: _sp.color = Color.white; break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(color), color, null);
-        }
+            ColorTile.Blue => Color.blue,
+            ColorTile.Red => Color.red,
+            ColorTile.Green => Color.green,
+            ColorTile.Yellow => Color.yellow,
+            ColorTile.Purple => Color.magenta,
+            ColorTile.Orange => new Color(1f, 0.5f, 0f),
+            ColorTile.Pink => new Color(1f, 0.41f, 0.71f),
+            ColorTile.White => Color.white,
+            _ => _sp.color
+        };
     }
     public void SetText(string text) => _bulletsText.SetText(text);
 

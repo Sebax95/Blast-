@@ -19,6 +19,9 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     private SlotsContainers _slotsContainers;
     
     private Coroutine _ShootCoroutine;
+    
+    [SerializeField]
+    private BulletSpawner _bulletSpawner;
 
     private bool _isUsed;
     public bool IsPickeable { get; set; }
@@ -31,6 +34,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     {
         _gridTiles = FindAnyObjectByType<GridTiles>();
         _view = GetComponent<ShooterView>();
+        _bulletSpawner = FindAnyObjectByType<BulletSpawner>();
         _canProceed = true;
         _isUsed = false;
     }
@@ -56,6 +60,8 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         while (quantityBullets > 0)
         {
             ChangeTarget();
+            var bullet = _bulletSpawner.GetBullet();
+            bullet.MoveToTarget(Target.transform, ()=>_bulletSpawner.ReturnBullet(bullet));
             while (!_canProceed)
                 yield return null;
 
