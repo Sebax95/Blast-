@@ -37,5 +37,8 @@ public class TileObject : BaseMonoBehaviour
     public void OrderLayer() => _tileView.OrderLayer((int)Tile.positionGrid.y);
 
     public void UpdatePosition(TweenCallback callback = null) =>
-        transform.DOMove(grid.GetTilePosition(Tile.positionGrid.x, Tile.positionGrid.y), 0.1f).SetEase(Ease.Flash).OnComplete(callback);
+        transform.DOMove(grid.GetTilePosition(Tile.positionGrid.x, Tile.positionGrid.y), 0.1f).SetEase(Ease.Flash)
+            .OnComplete(callback);
+
+    public void DestroyTile(Action callback) => _tileView.DeathAnimation(callback);
 }

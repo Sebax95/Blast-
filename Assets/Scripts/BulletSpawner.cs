@@ -13,7 +13,7 @@ public class BulletSpawner : BaseMonoBehaviour
 
     private Bullet FactoryMethod()
     {
-        var bullet = Instantiate(_bulletPrefab, transform);
+        var bullet = Instantiate(_bulletPrefab, transform, true);
         bullet.spawner = this;
         return bullet;
     }

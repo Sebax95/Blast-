@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using UnityEngine;
 
 public class GridTiles: BaseMonoBehaviour, IObservable
@@ -17,19 +19,15 @@ public class GridTiles: BaseMonoBehaviour, IObservable
     private TileObject _tileObjectPrefab;
     
     private List<IObserver> _allObservers = new();
+    private Dictionary<int, bool> _columnBusy = new();
+    private Dictionary<int, Queue<Action>> _columnQueues = new();
+    
 
     [SerializeField]
     private bool _showGizmos;
-    
-    private void Awake()
-    {
-        _tileObjectPool = new ObjectPool<TileObject>(FactoryTiles, TileObject.TurnOn, TileObject.TurnOff, gridSizeX * gridSizeY);
-    }
-    protected override void Start()
-    {
-        base.Start();
-        //CreateGrid();
-    }
+
+    private void Awake() => _tileObjectPool =
+        new ObjectPool<TileObject>(FactoryTiles, TileObject.TurnOn, TileObject.TurnOff, gridSizeX * gridSizeY);
 
     #region Observer
     
@@ -60,7 +58,9 @@ public class GridTiles: BaseMonoBehaviour, IObservable
     
 
     #endregion
-    
+
+    #region Level Creation
+
     public void BuildFromLevel(LevelGenerator level)
     {
         gridSizeX = level.cols;
@@ -82,7 +82,7 @@ public class GridTiles: BaseMonoBehaviour, IObservable
             }
         }
     }
-    
+
     public void ClearAll()
     {
         for (int i = transform.childCount - 1; i >= 0; i--)
@@ -93,36 +93,23 @@ public class GridTiles: BaseMonoBehaviour, IObservable
         _tiles = null;
         _tileObjects = null;
     }
-    
-    private void CreateGrid()
+    private void BindTileObject(TileObject obj, Tile tile)
     {
-        _tiles = new Tile[gridSizeX, gridSizeY];
-        _tileObjects = new TileObject[gridSizeX, gridSizeY];
-        for (int y = 0; y < gridSizeY; y++)
-        {
-            for (int x = 0; x < gridSizeX; x++)
-            {
-                var values = (ColorTile[])System.Enum.GetValues(typeof(ColorTile));
-                _tiles[x,y] = new Tile(x+y, ColorTile.Green, new Vector2(x,y));
-                var obj = GetTileObjectFromPool();
-                BindTileObject(obj, _tiles[x, y]);
-                CreateGridTileObjects(obj, x, y);
-            }
-        }
+        obj.transform.SetParent(transform);
+        obj.Tile = tile;
+        obj.grid = this;
+        obj.UpdatePosition();
+        obj.UpdateSprite();
+        obj.OrderLayer();
     }
-
-    private void CreateGridTileObjects(TileObject to, int x, int y) => _tileObjects[x, y] = to;
-
+    #endregion
+    
     public TileObject GetTileObjectFromTile(Tile tile)
     {
         for (int y = 0; y < gridSizeY; y++)
-        {
             for (int x = 0; x < gridSizeX; x++)
-            {
                 if(_tiles[x,y] == tile)
                     return _tileObjects[x,y];
-            }
-        }
         return null;
     }
     public Vector2 GetTilePosition(float x, float y)
@@ -142,6 +129,9 @@ public class GridTiles: BaseMonoBehaviour, IObservable
         int y = 0;
         for (int x = 0; x < gridSizeX; x++)
         {
+            if (_columnBusy.TryGetValue(x, out var busy) && busy) 
+                continue;
+
             var t = _tiles[x, y];
             if (t != null) result.Add(t);
         }
@@ -149,32 +139,80 @@ public class GridTiles: BaseMonoBehaviour, IObservable
     }
     public void RemoveFirstLayerAtColumn(int xRow)
     {
-        if (_tiles == null) 
-            return;
-        if (xRow < 0 || xRow >= gridSizeX) 
-            return;
+        if (_tiles == null) return;
+        if (xRow < 0 || xRow >= gridSizeX) return;
+
+        _columnBusy.TryAdd(xRow, false);
+        if (!_columnQueues.ContainsKey(xRow)) 
+            _columnQueues[xRow] = new();
+
+        _columnQueues[xRow].Enqueue(() => ProcessColumnRemoval(xRow));
+        if (!_columnBusy[xRow])
+            DequeueAndRun(xRow);
+    }
+
+    private void ProcessColumnRemoval(int xRow)
+    {
+        float delayAfterDeath = 0.1f;
 
         Tile bottomTile = _tiles[xRow, 0];
         if (bottomTile != null)
         {
+            bottomTile.isBusy = true;
+
             for (int i = 0; i < transform.childCount; i++)
             {
                 var to = transform.GetChild(i).GetComponent<TileObject>();
                 if (to == null || to.Tile != bottomTile)
                     continue;
-                ReturnTileObjectToPool(to);
-                break;
+
+                to.DestroyTile(() =>
+                {
+                    ReturnTileObjectToPool(to);
+                    DOVirtual.DelayedCall(delayAfterDeath, () =>
+                    {
+                        ShiftColumnDown(xRow);
+                        
+                        var newFirst = _tiles[xRow, 0];
+                        if (newFirst != null)
+                            newFirst.isBusy = false;
+
+                        UpdateAllTileObjects();
+                        _columnBusy[xRow] = false;
+                        DequeueAndRun(xRow);
+                    });
+                });
+                return;
             }
         }
+
+        _columnBusy[xRow] = false;
+        DequeueAndRun(xRow);
+    }
+
+    private void DequeueAndRun(int xRow)
+    {
+        if (_columnBusy[xRow]) return;
+        if (_columnQueues[xRow].Count == 0) return;
+
+        _columnBusy[xRow] = true;
+        var op = _columnQueues[xRow].Dequeue();
+        op.Invoke();
+    }
+
+    private void ShiftColumnDown(int xRow)
+    {
         for (int y = 1; y < gridSizeY; y++)
         {
             _tiles[xRow, y - 1] = _tiles[xRow, y];
             if (_tiles[xRow, y - 1] != null)
                 _tiles[xRow, y - 1].positionGrid = new Vector2(xRow, y - 1);
         }
-        
         _tiles[xRow, gridSizeY - 1] = null;
-        
+    }
+
+    private void UpdateAllTileObjects()
+    {
         for (int i = 0; i < transform.childCount; i++)
         {
             var to = transform.GetChild(i).GetComponent<TileObject>();
@@ -182,7 +220,6 @@ public class GridTiles: BaseMonoBehaviour, IObservable
             to.UpdatePosition(NotifyObservers);
             to.UpdateSprite();
         }
-        
     }
 
     private void NotifyObservers()
@@ -191,42 +228,5 @@ public class GridTiles: BaseMonoBehaviour, IObservable
             item.OnNotify(ObserverMessage.UpdateRow);
     }
 
-    private void BindTileObject(TileObject obj, Tile tile)
-    {
-        obj.Tile = tile;
-        obj.grid = this;
-        obj.UpdatePosition();
-        obj.UpdateSprite();
-        obj.OrderLayer();
-    }
-    
-
-    private void OnDrawGizmosSelected()
-    {
-        if(!_showGizmos) return;
-        float cell = cellSize;
-        Vector3 offset = new Vector3(cell * 0.5f, cell * 0.5f, 0f);
-
-        Vector3 gridCenter = transform.position + offset +
-                             new Vector3((gridSizeX - 1) * cell * 0.5f, (gridSizeY - 1) * cell * 0.5f, 0f);
-        
-        Vector3 gridSize = new Vector3(gridSizeX * cell, gridSizeY * cell, 1f);
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireCube(gridCenter, gridSize);
-
-        if (_tiles == null) return;
-
-        for (int x = 0; x < gridSizeX; x++)
-        {
-            for (int y = 0; y < gridSizeY; y++)
-            {
-                Gizmos.color = Color.blue;
-                Gizmos.DrawWireCube(transform.position + new Vector3(x * cell, y * cell, 0f) + offset,
-                    new Vector3(cell, cell, 1f));
-            }
-        }
-    }
-
-   
+ 
 }

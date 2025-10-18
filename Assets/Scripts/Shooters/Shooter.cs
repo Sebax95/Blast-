@@ -47,40 +47,63 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _slotsContainers = FindAnyObjectByType<SlotsContainers>();
     }
 
-    public void OnSelectedSlot()
+    private void OnSelectedSlot()
     {
-        _ShootCoroutine = StartCoroutine(Shoot());
-        transform.DOMove(_slotSelected.transform.position, .2f).SetEase(Ease.InCubic);
+        transform.DOMove(_slotSelected.transform.position, .2f).SetEase(Ease.InCubic).OnComplete(() =>
+        {
+            _ShootCoroutine = StartCoroutine(Shoot());
+        });
         transform.SetParent(_slotSelected.transform);
     }
     
 
     private IEnumerator Shoot()
     {
-        while (quantityBullets > 0)
+        while (quantityBullets >= 0)
         {
             ChangeTarget();
-            var bullet = _bulletSpawner.GetBullet();
-            bullet.MoveToTarget(Target.transform, ()=>_bulletSpawner.ReturnBullet(bullet));
             while (!_canProceed)
-                yield return null;
-
-            _gridTiles.RemoveFirstLayerAtColumn((int)Target.Tile.positionGrid.x);
-            quantityBullets--;
+                yield return new WaitForEndOfFrame();
+            if(Target.Tile.color != color)
+                yield break;
+            SetupBullet();
+            
             _view.SetText(quantityBullets.ToString());
+            _gridTiles.RemoveFirstLayerAtColumn((int)Target.Tile.positionGrid.x);
+            
             yield return new WaitForSeconds(speedShooting);
         }
         _view.Die();
         _slotSelected.RestartSlot();
     }
 
+    private void SetupBullet()
+    {
+        var bullet = _bulletSpawner.GetBullet();
+        bullet.transform.SetParent(transform);
+        bullet.transform.localPosition = Vector3.zero;
+        bullet.SetTrailColor(Utilities.GetColorTile(color));
+        bullet.MoveToTarget(Target.transform, BulletShot);
+        bullet.EnableTrail(true);
+    }
+    
+    private void BulletShot(Bullet bullet)
+    {
+        quantityBullets--;
+        _bulletSpawner.ReturnBullet(bullet);
+    }
+
     private bool ChangeTarget()
     {
         var firstLayer = _gridTiles.GetFirstLayer();
-        foreach (var tile in firstLayer.Where(tile => tile.color == color && !tile.isSelected))
+        var listSelected = firstLayer.Where(tile => tile.color == color && !tile.isSelected && !tile.isBusy);
+        foreach (var tile in listSelected)
         {
+            tile.isBusy = true;
+
             Target = _gridTiles.GetTileObjectFromTile(tile);
             Target.Tile.isSelected = true;
+            _canProceed = true;
             return true;
         }
         _canProceed = false;

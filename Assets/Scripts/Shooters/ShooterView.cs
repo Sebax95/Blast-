@@ -14,21 +14,7 @@ public class ShooterView : BaseMonoBehaviour
         _sp = GetComponent<SpriteRenderer>();
     }
 
-    public void SetColor(ColorTile color)
-    {
-        _sp.color = color switch
-        {
-            ColorTile.Blue => Color.blue,
-            ColorTile.Red => Color.red,
-            ColorTile.Green => Color.green,
-            ColorTile.Yellow => Color.yellow,
-            ColorTile.Purple => Color.magenta,
-            ColorTile.Orange => new Color(1f, 0.5f, 0f),
-            ColorTile.Pink => new Color(1f, 0.41f, 0.71f),
-            ColorTile.White => Color.white,
-            _ => _sp.color
-        };
-    }
+    public void SetColor(ColorTile color) => _sp.color = Utilities.GetColorTile(color);
     public void SetText(string text) => _bulletsText.SetText(text);
 
     public void Die()

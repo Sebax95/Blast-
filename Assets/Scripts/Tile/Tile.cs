@@ -8,6 +8,7 @@ public class Tile
     public ColorTile color;
     public Vector2 positionGrid;
     public bool isSelected;
+    public bool isBusy;
 
     public Tile(int _id, ColorTile _color, Vector2 _positionGrid)
     {
@@ -15,6 +16,7 @@ public class Tile
         color = _color;
         positionGrid = _positionGrid;
         isSelected = false;
+        isBusy = false;
     }
     
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 public class TileView : BaseMonoBehaviour
@@ -39,11 +40,10 @@ public class TileView : BaseMonoBehaviour
         };
     }
 
-    public void UpdateSprite(ColorTile color)
-    {
-        _sp.sprite = _spritesDic[color];
-    }
+    public void UpdateSprite(ColorTile color) => _sp.sprite = _spritesDic[color];
 
     public void OrderLayer(int y) => _sp.sortingOrder = -y;
 
+    public void DeathAnimation(Action callback) => transform.DOScale(Vector3.one * 0.2f, 0.3f).SetEase(Ease.InElastic)
+        .OnComplete(() => callback?.Invoke());
 }
