@@ -59,26 +59,29 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
 
     private IEnumerator Shoot()
     {
-        while (quantityBullets >= 0)
+        while (quantityBullets > 0)
         {
             ChangeTarget();
-            while (!_canProceed)
-                yield return new WaitForEndOfFrame();
-            if(Target.Tile.color != color)
-                yield break;
+            yield return new WaitUntil(()=> _canProceed);
+
+            if (Target == null || Target.Tile == null)
+            {
+                _canProceed = false;
+                continue;
+            }
+
             SetupBullet();
-            
+       
             _view.SetText(quantityBullets.ToString());
-            _gridTiles.RemoveFirstLayerAtColumn((int)Target.Tile.positionGrid.x);
-            
             yield return new WaitForSeconds(speedShooting);
         }
         _view.Die();
         _slotSelected.RestartSlot();
     }
-
+    
     private void SetupBullet()
     {
+        _canProceed = false;
         var bullet = _bulletSpawner.GetBullet();
         bullet.transform.SetParent(transform);
         bullet.transform.localPosition = Vector3.zero;
@@ -86,37 +89,47 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         bullet.MoveToTarget(Target.transform, BulletShot);
         bullet.EnableTrail(true);
     }
-    
     private void BulletShot(Bullet bullet)
     {
         quantityBullets--;
-        _bulletSpawner.ReturnBullet(bullet);
-    }
 
+        if (Target != null && Target.Tile != null)
+            _gridTiles.RemoveFirstLayerAtColumn((int)Target.Tile.positionGrid.x);
+        
+
+        _bulletSpawner.ReturnBullet(bullet);
+        _canProceed = true;
+    }
     private bool ChangeTarget()
     {
         var firstLayer = _gridTiles.GetFirstLayer();
-        var listSelected = firstLayer.Where(tile => tile.color == color && !tile.isSelected && !tile.isBusy);
-        foreach (var tile in listSelected)
-        {
-            tile.isBusy = true;
+        var tile = firstLayer.FirstOrDefault(t => t.color == color);
 
-            Target = _gridTiles.GetTileObjectFromTile(tile);
-            Target.Tile.isSelected = true;
-            _canProceed = true;
-            return true;
+        if (tile != null)
+        {
+            var targetObj = _gridTiles.GetTileObjectFromTile(tile);
+            if (targetObj != null)
+            {
+                Target = targetObj;
+                _canProceed = true;
+                return true;
+            }
         }
+
+        Target = null;
         _canProceed = false;
-        return Target != null;
+        return false;
     }
+
+   
 
     public void OnNotify(ObserverMessage message)
     {
         if(message != ObserverMessage.UpdateRow)
             return;
-        if (_canProceed) return;
-        if(ChangeTarget())
-            _canProceed = true;
+        if (_canProceed) 
+            return;
+        _canProceed = ChangeTarget();
     }
 
     public void OnPointerClick(PointerEventData eventData)
