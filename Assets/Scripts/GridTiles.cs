@@ -196,7 +196,6 @@ public class GridTiles: BaseMonoBehaviour, IObservable
     {
         if (_columnQueues[xRow].Count == 0) return;
 
-        // la columna ya está marcada ocupada por TryClaimColumn o por ProcessColumnRemoval
         var op = _columnQueues[xRow].Dequeue();
         op.Invoke();
     }

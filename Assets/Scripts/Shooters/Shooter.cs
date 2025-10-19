@@ -73,7 +73,6 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
 
             int columnX = (int)Target.Tile.positionGrid.x;
 
-            // Reservar columna; si falla, esperar siguiente notificación y reintentar
             if (!_gridTiles.TryClaimColumn(columnX))
             {
                 _canProceed = false;
@@ -109,11 +108,9 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         }
         DOVirtual.DelayedCall(1.0f, () =>
         {
-            if (!called)
-            {
-                called = true;
-                BulletShot(bullet, columnX, hasTarget);
-            }
+            if (called) return;
+            called = true;
+            BulletShot(bullet, columnX, hasTarget);
         });
 
         if (hasTarget) 
@@ -130,7 +127,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         if (hadTargetAtFireTime)
             _gridTiles.RemoveFirstLayerAtColumn(columnX);
         else
-            _gridTiles.ReleaseColumn(columnX); // liberar si no se disparó contra nada
+            _gridTiles.ReleaseColumn(columnX);
 
         _bulletSpawner.ReturnBullet(bullet);
         _canProceed = true;
@@ -155,8 +152,6 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _canProceed = false;
         return false;
     }
-
-   
 
     public void OnNotify(ObserverMessage message)
     {
