@@ -139,15 +139,17 @@ public class GridTiles: BaseMonoBehaviour, IObservable
     }
     public void RemoveFirstLayerAtColumn(int xRow)
     {
-        if (_tiles == null) return;
-        if (xRow < 0 || xRow >= gridSizeX) return;
+        if (_tiles == null) { ReleaseColumn(xRow); return; }
+        if (xRow < 0 || xRow >= gridSizeX) { ReleaseColumn(xRow); return; }
 
         _columnBusy.TryAdd(xRow, false);
         if (!_columnQueues.ContainsKey(xRow)) 
             _columnQueues[xRow] = new();
 
         _columnQueues[xRow].Enqueue(() => ProcessColumnRemoval(xRow));
-        if (!_columnBusy[xRow])
+        if (_columnBusy[xRow] == true) // ya está reclamada por TryClaimColumn
+            DequeueAndRun(xRow);
+        else
             DequeueAndRun(xRow);
     }
 
@@ -178,7 +180,7 @@ public class GridTiles: BaseMonoBehaviour, IObservable
                             newFirst.isBusy = false;
 
                         UpdateAllTileObjects();
-                        _columnBusy[xRow] = false;
+                        ReleaseColumn(xRow);
                         DequeueAndRun(xRow);
                     });
                 });
@@ -186,16 +188,15 @@ public class GridTiles: BaseMonoBehaviour, IObservable
             }
         }
 
-        _columnBusy[xRow] = false;
+        ReleaseColumn(xRow);
         DequeueAndRun(xRow);
     }
 
     private void DequeueAndRun(int xRow)
     {
-        if (_columnBusy[xRow]) return;
         if (_columnQueues[xRow].Count == 0) return;
 
-        _columnBusy[xRow] = true;
+        // la columna ya está marcada ocupada por TryClaimColumn o por ProcessColumnRemoval
         var op = _columnQueues[xRow].Dequeue();
         op.Invoke();
     }
@@ -222,6 +223,21 @@ public class GridTiles: BaseMonoBehaviour, IObservable
         }
     }
 
+    public bool TryClaimColumn(int xRow)
+    {
+        if (xRow < 0 || xRow >= gridSizeX) return false;
+        _columnBusy.TryAdd(xRow, false);
+        if (_columnBusy[xRow]) return false;
+        _columnBusy[xRow] = true;
+        return true;
+    }
+
+    public void ReleaseColumn(int xRow)
+    {
+        if (xRow < 0 || xRow >= gridSizeX) return;
+        _columnBusy.TryAdd(xRow, false);
+        _columnBusy[xRow] = false;
+    }
     private void NotifyObservers()
     {
         foreach (var item in _allObservers)

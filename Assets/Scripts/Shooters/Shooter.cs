@@ -67,11 +67,22 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             if (Target == null || Target.Tile == null)
             {
                 _canProceed = false;
+                yield return null;
                 continue;
             }
 
-            SetupBullet();
-       
+            int columnX = (int)Target.Tile.positionGrid.x;
+
+            // Reservar columna; si falla, esperar siguiente notificación y reintentar
+            if (!_gridTiles.TryClaimColumn(columnX))
+            {
+                _canProceed = false;
+                yield return null;
+                continue;
+            }
+
+            SetupBullet(columnX);
+            
             _view.SetText(quantityBullets.ToString());
             yield return new WaitForSeconds(speedShooting);
         }
@@ -79,23 +90,47 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _slotSelected.RestartSlot();
     }
     
-    private void SetupBullet()
+    private void SetupBullet(int columnX)
     {
         _canProceed = false;
         var bullet = _bulletSpawner.GetBullet();
         bullet.transform.SetParent(transform);
         bullet.transform.localPosition = Vector3.zero;
         bullet.SetTrailColor(Utilities.GetColorTile(color));
-        bullet.MoveToTarget(Target.transform, BulletShot);
+        
+        var hasTarget = Target != null && Target.Tile != null;
+
+        bool called = false;
+        void OnShot(Bullet b)
+        {
+            if (called) return;
+            called = true;
+            BulletShot(b, columnX, hasTarget);
+        }
+        DOVirtual.DelayedCall(1.0f, () =>
+        {
+            if (!called)
+            {
+                called = true;
+                BulletShot(bullet, columnX, hasTarget);
+            }
+        });
+
+        if (hasTarget) 
+            bullet.MoveToTarget(Target.transform, OnShot);
+        else
+            OnShot(bullet);
+        
         bullet.EnableTrail(true);
     }
-    private void BulletShot(Bullet bullet)
+    private void BulletShot(Bullet bullet, int columnX, bool hadTargetAtFireTime)
     {
         quantityBullets--;
 
-        if (Target != null && Target.Tile != null)
-            _gridTiles.RemoveFirstLayerAtColumn((int)Target.Tile.positionGrid.x);
-        
+        if (hadTargetAtFireTime)
+            _gridTiles.RemoveFirstLayerAtColumn(columnX);
+        else
+            _gridTiles.ReleaseColumn(columnX); // liberar si no se disparó contra nada
 
         _bulletSpawner.ReturnBullet(bullet);
         _canProceed = true;
