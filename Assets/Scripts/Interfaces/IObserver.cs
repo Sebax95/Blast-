@@ -5,5 +5,6 @@
 
 public enum ObserverMessage
 {
-    UpdateRow
+    UpdateRow,
+    MergeColor
 }

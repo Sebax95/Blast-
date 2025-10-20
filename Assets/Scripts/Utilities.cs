@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
+
 
 public class Utilities
 {
@@ -17,5 +20,17 @@ public class Utilities
             ColorTile.White => Color.white,
             _ => throw new ArgumentOutOfRangeException(nameof(color), color, null)
         };
+    }
+
+    public static List<T> RandomizeList<T>(List<T> _list)
+    {
+        if (_list == null)
+            throw new ArgumentNullException(nameof(_list));
+        for (int i = _list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (_list[i], _list[j]) = (_list[j], _list[i]);
+        }
+        return _list;
     }
 } 

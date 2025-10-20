@@ -11,7 +11,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     public ColorTile color;
     public int quantityBullets;
     public float speedShooting;
-    private Slot _slotSelected;
+    public Slot slotSelected;
     public TileObject Target { get; set; }
     private GridTiles _gridTiles;
     private bool _canProceed;
@@ -49,11 +49,11 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
 
     private void OnSelectedSlot()
     {
-        transform.DOMove(_slotSelected.transform.position, .2f).SetEase(Ease.InCubic).OnComplete(() =>
+        transform.DOMove(slotSelected.transform.position, .2f).SetEase(Ease.InCubic).OnComplete(() =>
         {
             _ShootCoroutine = StartCoroutine(Shoot());
         });
-        transform.SetParent(_slotSelected.transform);
+        transform.SetParent(slotSelected.transform);
     }
     
 
@@ -86,7 +86,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             yield return new WaitForSeconds(speedShooting);
         }
         _view.Die();
-        _slotSelected.RestartSlot();
+        slotSelected.RestartSlot();
     }
     
     private void SetupBullet(int columnX)
@@ -129,6 +129,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         else
             _gridTiles.ReleaseColumn(columnX);
 
+        slotSelected.DieShooter();
         _bulletSpawner.ReturnBullet(bullet);
         _canProceed = true;
     }
@@ -166,10 +167,10 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     {
         if(_isUsed || !IsPickeable)
             return;
-        _slotSelected = _slotsContainers.GetFirstSlotEnable();
-        if(_slotSelected == null)
+        slotSelected = _slotsContainers.GetFirstSlotEnable();
+        if(slotSelected == null)
             return;
-        _slotSelected.SetShooter(this);
+        slotSelected.SetShooter(this);
         _isUsed = true;
         ShooterContainer.OnShooterSelected(this);
         OnSelectedSlot();

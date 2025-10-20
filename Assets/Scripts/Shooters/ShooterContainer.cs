@@ -11,16 +11,16 @@ public class ShooterContainer : BaseMonoBehaviour
     [SerializeField]
     private float _spaceing;
 
-    private Shooter[,] _grid; // [col,row]
+    private Shooter[,] _grid;
     private int _cols;
     private int _rows;
     
     public static Action<Shooter> OnShooterSelected;
-    
+    private SlotsContainers _slotsContainers;
     protected override void Start()
     {
         base.Start();
-      //  CreateShooters(6);
+        _slotsContainers = FindAnyObjectByType<SlotsContainers>();
         OnShooterSelected += MoveShooter;
     }
 
@@ -70,6 +70,8 @@ public class ShooterContainer : BaseMonoBehaviour
             _grid[x, y] = obj;
         }
 
+        RandomizeGrid();
+
         for (int y = 0; y < _rows; y++)
         {
             bool isBottomRow = y == _rows - 1;
@@ -80,43 +82,25 @@ public class ShooterContainer : BaseMonoBehaviour
                 s.IsPickeable = isBottomRow;
             }
         }
-
         ReorderShooter();
     }
-    
-    public void CreateShooters(int quantity = 2)
+
+    private void SwapGridElements(int x1, int y1, int x2, int y2) =>
+        (_grid[x1, y1], _grid[x2, y2]) = (_grid[x2, y2], _grid[x1, y1]);
+
+    private void RandomizeGrid()
     {
-        if (_grid != null)
-        {
-            for (int y = 0; y < _rows; y++)
-                for (int x = 0; x < _cols; x++)
-                    if (_grid[x, y] != null)
-                        Destroy(_grid[x, y].gameObject);
-        }
+        if (_grid == null) return;
 
-        ComputeGridSize(quantity, out _cols, out _rows);
-        if (_cols == 0 || _rows == 0) return;
-
-        _grid = new Shooter[_cols, _rows];
-
-        int created = 0;
         for (int y = 0; y < _rows; y++)
         {
             for (int x = 0; x < _cols; x++)
             {
-                if (created >= quantity) 
-                    break;
-                var obj = Instantiate(_slotPrefab, transform);
-                var randomColor = (ColorTile)Random.Range(0, Enum.GetValues(typeof(ColorTile)).Length);
-                obj.color = randomColor;
-                _grid[x, y] = obj;
-                created++;
-                obj.IsPickeable = y == _rows-1;
+                int randX = Random.Range(0, _cols);
+                int randY = Random.Range(0, _rows);
+                SwapGridElements(x, y, randX, randY);
             }
-            if (created >= quantity)
-                break;
         }
-        ReorderShooter();
     }
 
     private void ReorderShooter()
@@ -185,6 +169,10 @@ public class ShooterContainer : BaseMonoBehaviour
                 _grid[col, y].IsPickeable = true;
                 break; 
             }
+        _slotsContainers.OnShooterAdded?.Invoke(shooter);
     }
-    
+
+
+   
+
 }
