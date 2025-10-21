@@ -46,20 +46,27 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _view.SetText(quantityBullets.ToString());
         _slotsContainers = FindAnyObjectByType<SlotsContainers>();
     }
-
+    public void UpdateBulletsText() => _view.SetText(quantityBullets.ToString());
     private void OnSelectedSlot()
     {
         transform.DOMove(slotSelected.transform.position, .2f).SetEase(Ease.InCubic).OnComplete(() =>
         {
-            _ShootCoroutine = StartCoroutine(Shoot());
+            StartShooting();
+            _slotsContainers.OnShooterAdded?.Invoke(this);
         });
         transform.SetParent(slotSelected.transform);
     }
     
+    public void StartShooting() => _ShootCoroutine = StartCoroutine(Shoot());
+
+    public void StopBullet()
+    {
+        StopCoroutine(_ShootCoroutine);
+    }
 
     private IEnumerator Shoot()
     {
-        while (quantityBullets > 0)
+        while (quantityBullets >= 0)
         {
             ChangeTarget();
             yield return new WaitUntil(()=> _canProceed);
@@ -81,12 +88,11 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             }
 
             SetupBullet(columnX);
-            
-            _view.SetText(quantityBullets.ToString());
+
+            UpdateBulletsText();
             yield return new WaitForSeconds(speedShooting);
         }
-        _view.Die();
-        slotSelected.RestartSlot();
+        ShooterDead();
     }
     
     private void SetupBullet(int columnX)
@@ -129,7 +135,6 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         else
             _gridTiles.ReleaseColumn(columnX);
 
-        slotSelected.DieShooter();
         _bulletSpawner.ReturnBullet(bullet);
         _canProceed = true;
     }
@@ -153,6 +158,13 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _canProceed = false;
         return false;
     }
+
+    public void ShooterDead()
+    {
+        _view.Die();
+        slotSelected.DieShooter();
+    }
+    
 
     public void OnNotify(ObserverMessage message)
     {

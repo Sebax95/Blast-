@@ -105,7 +105,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   color: 3
   quantityBullets: 20
-  speedShooting: 0.1
+  speedShooting: 0.5
+  slotSelected: {fileID: 0}
   _bulletSpawner: {fileID: 0}
 --- !u!114 &4972822619034726326
 MonoBehaviour:

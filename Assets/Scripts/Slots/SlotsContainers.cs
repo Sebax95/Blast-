@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
-public class SlotsContainers : BaseMonoBehaviour, IObservable
+public class SlotsContainers : BaseMonoBehaviour
 {
     public List<Slot> slots;
     [SerializeField] private Slot _slotPrefab;
     [SerializeField] private float _spaceing;
-    private List<IObserver> _observers = new();
     public Action<Shooter> OnShooterAdded;
     /// <summary>
     /// shooter -> index slot
@@ -22,12 +22,13 @@ public class SlotsContainers : BaseMonoBehaviour, IObservable
         CreateSlots(5);
     }
 
-    public void CreateSlots(int quantity = 2)
+    private void CreateSlots(int quantity = 2)
     {
         for (int i = 0; i < quantity; i++)
         {
             var obj = Instantiate(_slotPrefab, transform);
             slots.Add(obj);
+            obj.index = i;
         }
 
         ReorderSlots();
@@ -53,80 +54,55 @@ public class SlotsContainers : BaseMonoBehaviour, IObservable
 
     public void RemoveShooter(Shooter shooter)
     {
-        if(!_shooterSlotDic.ContainsKey(shooter))
-            return;
-        foreach (var s in _shooterSlotDic.Where(s => s.Key == shooter))
-            _shooterSlotDic.Remove(s.Key);
+        if (shooter == null) return;
+        _shooterSlotDic.Remove(shooter);
     }
+
+    public void AddShooter(Shooter shooter, int index) => _shooterSlotDic.Add(shooter, index);
+
     private void CheckShooterBetweenColors(Shooter shooter)
     {
-        if(shooter == null)
+        if (shooter == null || slots == null || slots.Count < 3)
             return;
-        
-        _shooterSlotDic[shooter] = shooter.slotSelected.index;
-        
-        int streak = 0;
-        ColorTile? currentColor = null;
 
-        for (int i = 0; i < slots.Count; i++)
+        if (!_shooterSlotDic.TryGetValue(shooter, out var index))
+            return;
+
+        Shooter Get(int i) =>
+            (i >= 0 && i < slots.Count) ? slots[i]?.GetShooter() : null;
+
+        bool Same(Shooter a, Shooter b, Shooter c) =>
+            a != null && b != null && c != null &&
+            a.color == b.color && b.color == c.color;
+
+        bool TryWindow(int a, int b, int c, out (Shooter left, Shooter right, Shooter mid) res)
         {
-            var slot = slots[i];
-            if (slot == null || !slot.isUsed)
-            {
-                streak = 0;
-                currentColor = null;
-                continue;
-            }
-            
-            var shooterAtIndex = _shooterSlotDic.FirstOrDefault(p => p.Value == slot.index).Key;
-
-            if (shooterAtIndex == null)
-            {
-                streak = 0;
-                currentColor = null;
-                continue;
-            }
-
-            if (currentColor.HasValue && shooterAtIndex.color == currentColor.Value)
-                streak++;
-            else
-            {
-                currentColor = shooterAtIndex.color;
-                streak = 1;
-            }
-
-            if (streak >= 3)
-            {
-                OnNotify(ObserverMessage.MergeColor);
-                break;
-            }
-            else
-            {
-                Debug.Log("nothing");
-            }
+            res = default;
+            var A = Get(a);
+            var B = Get(b);
+            var C = Get(c);
+            if (!Same(A, B, C)) return false;
+            res = (A, C, B);
+            return true;
         }
+
+        if (TryWindow(index - 2, index - 1, index, out var t) || TryWindow(index - 1, index, index + 1, out t) ||
+            TryWindow(index, index + 1, index + 2, out t)) 
+            ExecuteMerge(t.left, t.right, t.mid);
+        
     }
 
 
-    #region Observers
-
-    public void Subscribe(IObserver observer)
+    private void ExecuteMerge(Shooter left, Shooter right, Shooter middle)
     {
-        if(!_observers.Contains(observer))
-            _observers.Add(observer);
+        left.StopBullet();
+        right.StopBullet();
+        middle.StopBullet();
+        
+        var mergeAction = middle.GetComponent<MergeAction>();
+        mergeAction.UpdateBullets(left.quantityBullets, right.quantityBullets);
+        left.ShooterDead();
+        right.ShooterDead();
+        mergeAction.Merge(0.5f);
     }
-
-    public void Unsubscribe(IObserver observer)
-    {
-        if(_observers.Contains(observer))
-            _observers.Remove(observer);
-    }
-
-    public void OnNotify(ObserverMessage message)
-    {
-        foreach (var item in _observers)
-            item.OnNotify(ObserverMessage.MergeColor); 
-    }
-
-    #endregion
 }

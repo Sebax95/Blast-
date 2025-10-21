@@ -1,29 +1,26 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
-public class MergeAction : BaseMonoBehaviour, IObserver
+public class MergeAction : BaseMonoBehaviour
 {
-    private SlotsContainers _slotsContainers;
-    private void Awake()
+    private Shooter _shooter;
+    
+    private void Awake() => _shooter = GetComponent<Shooter>();
+
+    public void Merge(float delaySeconds) => StartCoroutine(MergeAfterDelay(delaySeconds));
+
+    private IEnumerator MergeAfterDelay(float seconds)
     {
-        _slotsContainers = FindAnyObjectByType<SlotsContainers>();
+        yield return new WaitForSeconds(seconds);
+        _shooter.StartShooting();
     }
 
-    private void OnEnable()
+    public void UpdateBullets(int bulletsA, int bulletsB)
     {
-        _slotsContainers.Subscribe(this);
-    }
-    private void OnDisable()
-    {
-        _slotsContainers.Unsubscribe(this);
-    }
-
-
-    public void OnNotify(ObserverMessage message)
-    {
-        if (message == ObserverMessage.MergeColor)
-        {
-            Debug.Log("3 colores!");
-        }
+        var ab = bulletsA + bulletsB;
+        _shooter.quantityBullets += ab;
+        _shooter.UpdateBulletsText();
     }
 }

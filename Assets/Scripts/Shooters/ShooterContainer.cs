@@ -169,7 +169,6 @@ public class ShooterContainer : BaseMonoBehaviour
                 _grid[col, y].IsPickeable = true;
                 break; 
             }
-        _slotsContainers.OnShooterAdded?.Invoke(shooter);
     }
 
 

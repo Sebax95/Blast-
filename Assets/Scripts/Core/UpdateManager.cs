@@ -11,8 +11,8 @@ public class UpdateManager : MonoBehaviour
     [SerializeField]
     private bool _isPaused;
     
-    private List<Rigidbody> _rigidbodies = new List<Rigidbody>();
-    private Dictionary<Rigidbody, Vector3> _velocities = new Dictionary<Rigidbody, Vector3>();
+    private List<Rigidbody> _rigidbodies = new();
+    private Dictionary<Rigidbody, Vector3> _velocities = new ();
     public static Action OnPause;
     public static Action OnUnPause;
 
