@@ -226,7 +226,7 @@ GameObject:
   - component: {fileID: 190425403}
   m_Layer: 5
   m_Name: Win Panel
-  m_TagString: Untagged
+  m_TagString: Win
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -593,6 +593,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _slotPrefab: {fileID: 6145141851159624939, guid: 706402242aa07dd448798161f4de4b3d, type: 3}
   _spaceing: 10
+  _marginWithSlots: 7
 --- !u!1 &773876355
 GameObject:
   m_ObjectHideFlags: 0
@@ -800,7 +801,7 @@ Transform:
   m_GameObject: {fileID: 1002583110}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 15, y: 25, z: -100}
+  m_LocalPosition: {x: 15, y: 25, z: -122}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1195,8 +1196,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   levelAsset:
+  - {fileID: 11400000, guid: 6d2bbf6550982e8419197ec738d85842, type: 2}
   - {fileID: 11400000, guid: 68246149645778448ad18d8ddbc1e946, type: 2}
-  - {fileID: 11400000, guid: de5bb05df6dcdd14c89966fe4a2e88e4, type: 2}
+  - {fileID: 11400000, guid: 314e1865b7eeb124da9d616912b8e0f1, type: 2}
+  - {fileID: 11400000, guid: c3fc623fdc86b5a438da7b5c728e3901, type: 2}
+  - {fileID: 11400000, guid: 07aa6e5eb0aa3b4469ce6de10289147b, type: 2}
+  - {fileID: 11400000, guid: bbc6fbca3d5d3ef4695b7b4e4f34b651, type: 2}
+  - {fileID: 11400000, guid: 0d780558aaba6174584d1e1d999a5a33, type: 2}
+  - {fileID: 11400000, guid: 6d5df0595edb73a4c99ad4a2896e657d, type: 2}
+  - {fileID: 11400000, guid: 0df68fa373993094399e88fb41db5dee, type: 2}
+  - {fileID: 11400000, guid: 9c2a7f134a2628f46b8bf0e72a47e3e8, type: 2}
+  - {fileID: 11400000, guid: 7e281651a8ff444429e0bc0fa767bc58, type: 2}
+  - {fileID: 11400000, guid: 36faf9a9a6fae9e4bbafba01ed6d4424, type: 2}
+  - {fileID: 11400000, guid: fbe0fabaf100e2e46b2529019b93ac45, type: 2}
+  - {fileID: 11400000, guid: 0cee7021ddc54e34aa60581b88bb9a14, type: 2}
+  - {fileID: 11400000, guid: ba4ebd44cf5a1da4a87cf0617df315f8, type: 2}
+  - {fileID: 11400000, guid: 819a492bfb1253c4a923fe557fcd095d, type: 2}
+  - {fileID: 11400000, guid: 35c75e4131d9f0141b7f22f95c1dfb43, type: 2}
+  - {fileID: 11400000, guid: 733fe018c71556d4facec1c8681a1d12, type: 2}
+  - {fileID: 11400000, guid: 0f9a6f5f4597b6c4b977ebb38c090cbf, type: 2}
+  - {fileID: 11400000, guid: 6a5aa2250ac5e0241b95097c8797d1e4, type: 2}
+  - {fileID: 11400000, guid: 3804a7bec5ce67b4b9048253e7cfc111, type: 2}
+  forceLevel: 20
 --- !u!4 &1423313201
 Transform:
   m_ObjectHideFlags: 0

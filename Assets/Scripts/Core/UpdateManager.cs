@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -28,7 +29,7 @@ public class UpdateManager : MonoBehaviour
         #endregion
         //Limit the framerate to 144
         Application.targetFrameRate = 144;
-        
+        DOTween.SetTweensCapacity(1250,500);
         _updates = new List<BaseMonoBehaviour>();
         _rigidbodies = FindObjectsOfType<Rigidbody>().ToList();
         foreach (var t in _rigidbodies.Where(t => t.isKinematic).ToList().Where(t => t != null))
@@ -103,6 +104,7 @@ public class UpdateManager : MonoBehaviour
         GetAllVelocity();
         foreach (var t in _rigidbodies)
             t.isKinematic = true;
+        DOTween.PauseAll();
         OnPause?.Invoke();
     }
 
@@ -114,6 +116,7 @@ public class UpdateManager : MonoBehaviour
             t.isKinematic = false;
             t.linearVelocity = _velocities[t];
         }
+        DOTween.PlayAll();
         OnUnPause?.Invoke();
     }
     #endregion

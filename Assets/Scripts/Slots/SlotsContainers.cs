@@ -101,7 +101,7 @@ public class SlotsContainers : BaseMonoBehaviour
         if (!allSlotsFull)
             return;
 
-        StartCoroutine(CheckFullSlotsDelayed(1f));
+        StartCoroutine(CheckFullSlotsDelayed(5f));
     }
 
     private IEnumerator CheckFullSlotsDelayed(float delay)

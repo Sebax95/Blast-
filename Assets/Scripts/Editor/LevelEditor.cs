@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System;
 using System.Linq;
+using System.IO; // agregado
 
 public class LevelEditor : EditorWindow
 {
@@ -26,6 +27,12 @@ public class LevelEditor : EditorWindow
         new Color(1f, 0.41f, 0.71f),//pink
         Color.white,
     };
+
+    private bool isPainting = false;
+    private int paintButton = 0; 
+
+    
+    private LevelGenerator loadFromAsset;
 
     [MenuItem("Tools/Level Editor")]
     public static void Open()
@@ -63,6 +70,8 @@ public class LevelEditor : EditorWindow
         DrawCounts();
         EditorGUILayout.Space(6);
         DrawExport();
+        EditorGUILayout.Space(6);
+        DrawImport();
     }
 
     private void DrawHeader()
@@ -160,10 +169,11 @@ public class LevelEditor : EditorWindow
 
         Rect viewRect = GUILayoutUtility.GetRect(gridWidth, gridHeight, GUILayout.ExpandWidth(true),
             GUILayout.ExpandHeight(false));
-        Rect scrollViewRect = new Rect(0, 0, gridWidth + 10, gridHeight + 10);
+        Rect contentRect = new Rect(0, 0, gridWidth, gridHeight);
 
-        scroll = GUI.BeginScrollView(viewRect, scroll, scrollViewRect);
-
+        int controlId = GUIUtility.GetControlID(FocusType.Passive);
+        scroll = GUI.BeginScrollView(viewRect, scroll, contentRect);
+        
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
@@ -172,17 +182,11 @@ public class LevelEditor : EditorWindow
                 float y = r * (cellSize + cellPadding) + cellPadding;
                 Rect cell = new Rect(x, y, cellSize, cellSize);
 
-                Color bg = GetUnityColor(grid[r, c].color);
                 var prevCol = GUI.backgroundColor;
-                GUI.backgroundColor = bg;
-
-                if (GUI.Button(cell, GUIContent.none))
-                {
-                    grid[r, c].color = activeColor;
-                }
-
+                GUI.backgroundColor = GetUnityColor(grid[r, c].color);
+                GUI.Box(cell, GUIContent.none);
                 GUI.backgroundColor = prevCol;
-                
+
                 Handles.color = Color.black * 0.5f;
                 Handles.DrawAAPolyLine(2f, new Vector3[]
                 {
@@ -194,23 +198,74 @@ public class LevelEditor : EditorWindow
                 });
             }
         }
-
-        GUI.EndScrollView();
-
-        if (Event.current.isMouse && Event.current.type == EventType.MouseDrag &&
-            viewRect.Contains(Event.current.mousePosition))
+        
+        var e = Event.current;
+        if (e.isMouse)
         {
-            Vector2 local = Event.current.mousePosition + scroll;
-            int c = Mathf.FloorToInt((local.x - cellPadding) / (cellSize + cellPadding));
-            int r = Mathf.FloorToInt((local.y - cellPadding) / (cellSize + cellPadding));
-            if (r >= 0 && r < rows && c >= 0 && c < cols)
+            Vector2 local = e.mousePosition + scroll;
+            
+            if (contentRect.Contains(local))
             {
-                grid[r, c].color = activeColor;
-                Repaint();
+                int c = Mathf.FloorToInt((local.x - cellPadding) / (cellSize + cellPadding));
+                int r = Mathf.FloorToInt((local.y - cellPadding) / (cellSize + cellPadding));
+                bool inside = r >= 0 && r < rows && c >= 0 && c < cols;
+
+                switch (e.GetTypeForControl(controlId))
+                {
+                    case EventType.MouseDown:
+                        if (e.button == paintButton)
+                        {
+                            GUIUtility.hotControl = controlId;
+                            isPainting = true;
+                            if (inside)
+                            {
+                                grid[r, c].color = activeColor;
+                                Repaint();
+                            }
+                            e.Use();
+                        }
+                        break;
+
+                    case EventType.MouseDrag:
+                        if (GUIUtility.hotControl == controlId && isPainting && e.button == paintButton)
+                        {
+                            if (inside)
+                            {
+                                grid[r, c].color = activeColor;
+                                Repaint();
+                            }
+                            e.Use();
+                        }
+                        break;
+
+                    case EventType.MouseUp:
+                        if (GUIUtility.hotControl == controlId && e.button == paintButton)
+                        {
+                            if (isPainting && inside)
+                            {
+                                grid[r, c].color = activeColor;
+                                Repaint();
+                            }
+                            isPainting = false;
+                            GUIUtility.hotControl = 0;
+                            e.Use();
+                        }
+                        break;
+                }
+            }
+            else
+            {
+                if (e.type == EventType.MouseUp && GUIUtility.hotControl == controlId)
+                {
+                    isPainting = false;
+                    GUIUtility.hotControl = 0;
+                    e.Use();
+                }
             }
         }
-    }
 
+        GUI.EndScrollView();
+    }
     private void DrawCounts()
     {
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
@@ -292,7 +347,7 @@ public class LevelEditor : EditorWindow
             if (!AssetDatabase.IsValidFolder(levelsDir))
                 AssetDatabase.CreateFolder(resourcesDir, "Levels");
 
-            string baseName = "LevelGenerator";
+            string baseName = "Level ";
             string uniquePath = AssetDatabase.GenerateUniqueAssetPath($"{levelsDir}/{baseName}.asset");
 
             AssetDatabase.CreateAsset(asset, uniquePath);
@@ -312,12 +367,14 @@ public class LevelEditor : EditorWindow
     {
         var copy = new Tile[rows, cols];
         int total = 0;
+        
         for (int r = 0; r < rows; r++)
         {
+            int srcRow = (rows - 1) - r;
             for (int c = 0; c < cols; c++)
             {
-                var t = grid[r, c];
-                copy[r, c] = new Tile(t.id, t.color, t.positionGrid);
+                var t = grid[srcRow, c];
+                copy[r, c] = new Tile(t.id, t.color, new Vector2(c, r));
                 total++;
             }
         }
@@ -325,7 +382,205 @@ public class LevelEditor : EditorWindow
         asset.BuildShootersFromCounts();
         EditorUtility.SetDirty(asset);
     }
+    
+    private void DrawImport()
+    {
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        EditorGUILayout.LabelField("Importar (JSON o ScriptableObject)", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("Carga una grilla en este editor.", MessageType.None);
+        
+        loadFromAsset = (LevelGenerator)EditorGUILayout.ObjectField("LevelGenerator:", loadFromAsset, typeof(LevelGenerator), false);
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("Cargar desde ScriptableObject"))
+        {
+            if (loadFromAsset == null)
+            {
+                EditorUtility.DisplayDialog("Sin asset", "Asigna un LevelGenerator válido.", "Ok");
+            }
+            else
+            {
+                LoadFromLevelGenerator(loadFromAsset);
+            }
+        }
+        
+        if (GUILayout.Button("Cargar desde JSON..."))
+        {
+            string path = EditorUtility.OpenFilePanel("Selecciona JSON de nivel", Application.dataPath, "json");
+            if (!string.IsNullOrEmpty(path))
+            {
+                try
+                {
+                    string json = File.ReadAllText(path);
+                    LoadFromJson(json);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error leyendo JSON: {ex.Message}");
+                    EditorUtility.DisplayDialog("Error", "No se pudo leer el archivo JSON.", "Ok");
+                }
+            }
+        }
+        EditorGUILayout.EndHorizontal();
 
+        EditorGUILayout.EndVertical();
+    }
+    
+    private void LoadFromLevelGenerator(LevelGenerator level)
+    {
+        if (level == null) return;
+
+        var data = level.To2DArray();
+        rows = level.rows;
+        cols = level.cols;
+        ResizeOrReinitGrid(rows, cols);
+
+        for (int r = 0; r < rows; r++)
+        {
+            int dstRow = (rows - 1) - r; 
+            for (int c = 0; c < cols; c++)
+            {
+                var s = data[r, c];
+                grid[dstRow, c] = new Tile(s.id, s.color, new Vector2(c, dstRow));
+            }
+        }
+        Repaint();
+    }
+    
+    [Serializable]
+    private class JsonTileSimple
+    {
+        public int id;
+        public int color; // enum como int
+        public int x;
+        public int y;
+    }
+    [Serializable]
+    private class JsonGridWrapper
+    {
+        public int rows;
+        public int cols;
+        public JsonTileSimple[] tiles;
+    }
+
+    private void LoadFromJson(string json)
+    {
+        try
+        {
+            var colorsJagged = JsonUtility.FromJson<WrapperIntArray>(WrapJsonArray(json));
+            if (colorsJagged != null && colorsJagged.values != null && colorsJagged.values.Length > 0)
+            {
+                int rCount = colorsJagged.values.Length;
+                int cCount = colorsJagged.values[0].values.Length;
+                rows = rCount;
+                cols = cCount;
+                ResizeOrReinitGrid(rows, cols);
+                for (int r = 0; r < rows; r++)
+                {
+                    int dstRow = (rows - 1) - r;
+                    var rowVals = colorsJagged.values[r].values;
+                    for (int c = 0; c < cols; c++)
+                    {
+                        var ct = (ColorTile)Mathf.Clamp(rowVals[c], 0, colorMap.Length - 1);
+                        grid[dstRow, c] = new Tile(dstRow * cols + c, ct, new Vector2(c, dstRow));
+                    }
+                }
+                Repaint();
+                return;
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+
+        try
+        {
+            var wrapper = JsonUtility.FromJson<JsonGridWrapper>(json);
+            if (wrapper != null && wrapper.tiles != null && wrapper.tiles.Length > 0)
+            {
+                rows = wrapper.rows;
+                cols = wrapper.cols;
+                ResizeOrReinitGrid(rows, cols);
+                foreach (var t in wrapper.tiles)
+                {
+                    int r = Mathf.Clamp(t.y, 0, rows - 1);
+                    int c = Mathf.Clamp(t.x, 0, cols - 1);
+                    int dstRow = (rows - 1) - r;
+                    var ct = (ColorTile)Mathf.Clamp(t.color, 0, colorMap.Length - 1);
+                    grid[dstRow, c] = new Tile(t.id, ct, new Vector2(c, dstRow));
+                }
+                for (int r = 0; r < rows; r++)
+                    for (int c = 0; c < cols; c++)
+                        if (grid[r,c] == null)
+                            grid[r, c] = new Tile(r * cols + c, ColorTile.White, new Vector2(c, r));
+                Repaint();
+                return;
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+
+        try
+        {
+            var tilesJagged = JsonUtility.FromJson<WrapperTileArray>(WrapJsonArray(json));
+            if (tilesJagged != null && tilesJagged.values != null && tilesJagged.values.Length > 0)
+            {
+                int rCount = tilesJagged.values.Length;
+                int cCount = tilesJagged.values[0].values.Length;
+                rows = rCount;
+                cols = cCount;
+                ResizeOrReinitGrid(rows, cols);
+                for (int r = 0; r < rows; r++)
+                {
+                    int dstRow = (rows - 1) - r;
+                    var rowVals = tilesJagged.values[r].values;
+                    for (int c = 0; c < cols; c++)
+                    {
+                        var jt = rowVals[c];
+                        var ct = (ColorTile)Mathf.Clamp(jt.color, 0, colorMap.Length - 1);
+                        grid[dstRow, c] = new Tile(jt.id, ct, new Vector2(c, dstRow));
+                    }
+                }
+                Repaint();
+                return;
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+
+        EditorUtility.DisplayDialog("Unsupported format",
+            "The JSON could not be interpreted. Use a matrix of colors or an object with rows, cols, and tiles.", "Ok");
+    }
+    
+    [Serializable]
+    private class IntArray { public int[] values; }
+    [Serializable]
+    private class WrapperIntArray { public IntArray[] values; }
+    [Serializable]
+    private class TileArray { public JsonTileSimple[] values; }
+    [Serializable]
+    private class WrapperTileArray { public TileArray[] values; }
+
+    private string WrapJsonArray(string json)
+    {
+        string trimmed = json.TrimStart();
+        if (trimmed.StartsWith("{")) return json;
+        return $"{{\"values\":{ConvertRows(json)}}}";
+    }
+
+    private string ConvertRows(string json)
+    {
+        string inner = json.Trim();
+        if (inner.StartsWith("[") && inner.EndsWith("]"))
+            inner = inner.Substring(1, inner.Length - 2);
+        inner = inner.Replace("],[", "]},{\"values\":[");
+        return $"[{{\"values\":[{inner}]}}]";
+    }
+    
     private Color GetUnityColor(ColorTile ct)
     {
         int idx = (int)ct;

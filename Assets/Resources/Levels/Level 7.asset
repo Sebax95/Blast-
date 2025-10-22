@@ -1,0 +1,283 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 984c978bf39f2d144a62431c034527fb, type: 3}
+  m_Name: Level 7
+  m_EditorClassIdentifier: 
+  rows: 5
+  cols: 10
+  tilesLinear:
+  - id: 0
+    color: 0
+    positionGrid: {x: 0, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 1
+    color: 0
+    positionGrid: {x: 1, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 2
+    color: 0
+    positionGrid: {x: 2, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 3
+    color: 1
+    positionGrid: {x: 3, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 4
+    color: 1
+    positionGrid: {x: 4, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 5
+    color: 1
+    positionGrid: {x: 5, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 6
+    color: 1
+    positionGrid: {x: 6, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 7
+    color: 0
+    positionGrid: {x: 7, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 8
+    color: 0
+    positionGrid: {x: 8, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 9
+    color: 0
+    positionGrid: {x: 9, y: 0}
+    isSelected: 0
+    isBusy: 0
+  - id: 10
+    color: 2
+    positionGrid: {x: 0, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 11
+    color: 2
+    positionGrid: {x: 1, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 12
+    color: 0
+    positionGrid: {x: 2, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 13
+    color: 1
+    positionGrid: {x: 3, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 14
+    color: 1
+    positionGrid: {x: 4, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 15
+    color: 1
+    positionGrid: {x: 5, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 16
+    color: 1
+    positionGrid: {x: 6, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 17
+    color: 0
+    positionGrid: {x: 7, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 18
+    color: 2
+    positionGrid: {x: 8, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 19
+    color: 2
+    positionGrid: {x: 9, y: 1}
+    isSelected: 0
+    isBusy: 0
+  - id: 20
+    color: 2
+    positionGrid: {x: 0, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 21
+    color: 2
+    positionGrid: {x: 1, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 22
+    color: 3
+    positionGrid: {x: 2, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 23
+    color: 3
+    positionGrid: {x: 3, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 24
+    color: 5
+    positionGrid: {x: 4, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 25
+    color: 5
+    positionGrid: {x: 5, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 26
+    color: 3
+    positionGrid: {x: 6, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 27
+    color: 3
+    positionGrid: {x: 7, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 28
+    color: 2
+    positionGrid: {x: 8, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 29
+    color: 2
+    positionGrid: {x: 9, y: 2}
+    isSelected: 0
+    isBusy: 0
+  - id: 30
+    color: 0
+    positionGrid: {x: 0, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 31
+    color: 3
+    positionGrid: {x: 1, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 32
+    color: 3
+    positionGrid: {x: 2, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 33
+    color: 1
+    positionGrid: {x: 3, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 34
+    color: 1
+    positionGrid: {x: 4, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 35
+    color: 1
+    positionGrid: {x: 5, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 36
+    color: 1
+    positionGrid: {x: 6, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 37
+    color: 3
+    positionGrid: {x: 7, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 38
+    color: 3
+    positionGrid: {x: 8, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 39
+    color: 0
+    positionGrid: {x: 9, y: 3}
+    isSelected: 0
+    isBusy: 0
+  - id: 40
+    color: 0
+    positionGrid: {x: 0, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 41
+    color: 0
+    positionGrid: {x: 1, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 42
+    color: 0
+    positionGrid: {x: 2, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 43
+    color: 1
+    positionGrid: {x: 3, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 44
+    color: 1
+    positionGrid: {x: 4, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 45
+    color: 1
+    positionGrid: {x: 5, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 46
+    color: 1
+    positionGrid: {x: 6, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 47
+    color: 0
+    positionGrid: {x: 7, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 48
+    color: 0
+    positionGrid: {x: 8, y: 4}
+    isSelected: 0
+    isBusy: 0
+  - id: 49
+    color: 0
+    positionGrid: {x: 9, y: 4}
+    isSelected: 0
+    isBusy: 0
+  totalTiles: 50
+  shooters:
+  - color: 0
+    bullets: 10
+  - color: 0
+    bullets: 6
+  - color: 1
+    bullets: 10
+  - color: 1
+    bullets: 6
+  - color: 2
+    bullets: 8
+  - color: 3
+    bullets: 8
+  - color: 5
+    bullets: 2

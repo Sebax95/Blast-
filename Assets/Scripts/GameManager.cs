@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : BaseMonoBehaviour
 {
@@ -13,6 +14,7 @@ public class GameManager : BaseMonoBehaviour
     
     [SerializeField]
     private GameObject WinPanel;
+    private Button _restartButton; 
     
     private void Awake()
     {
@@ -23,7 +25,11 @@ public class GameManager : BaseMonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    private void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
+    }
 
     protected override void Start()
     {
@@ -35,16 +41,34 @@ public class GameManager : BaseMonoBehaviour
     {
         if(!WinPanel)
             WinPanel = Utilities.FindByTagInactive("Win");
+        if(!_restartButton)
+            _restartButton = WinPanel.GetComponentInChildren<Button>();
+        _restartButton.onClick.AddListener(RestartLevel);
+        
+        OnGridTilesChanged -= CheckGridTiles;
+        OnGameOver -= Lose;
+
         OnGridTilesChanged += CheckGridTiles;
         OnGameOver += Lose;
-        SoundManager.PlaySound("Menu Background");
-        WinPanel.SetActive(false);
+        
+        var sceneName = SceneManager.GetActiveScene().name;
+        if (sceneName == "Game")
+        {
+            SoundManager.Instance?.StopAudio("Menu Background");
+            SoundManager.PlaySound("Music Background");
+        }
+        else
+        {
+            SoundManager.Instance?.StopAudio("Music Background");
+            SoundManager.PlaySound("Menu Background");
+        }
+
+        if (WinPanel) WinPanel.SetActive(false);
     }
 
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        Init();
-    }
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => Init();
+
+    private void OnSceneUnloaded(Scene scene) => UnSubscribe();
 
     public void Play() => SceneManager.LoadScene("Game");
 
@@ -78,13 +102,19 @@ public class GameManager : BaseMonoBehaviour
     public void RestartLevel()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        Init();
+    }
+
+    private void UnSubscribe()
+    {
+        OnGridTilesChanged -= CheckGridTiles;
+        OnGameOver -= Lose;
+        // NO desuscribas sceneLoaded aquí; se maneja en OnDisable
     }
     
     private void OnDisable()
     {
-        OnGridTilesChanged -= CheckGridTiles;
-        OnGameOver -= Lose;
+        UnSubscribe();
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
     }
 }

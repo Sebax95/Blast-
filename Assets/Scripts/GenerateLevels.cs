@@ -7,16 +7,16 @@ public class GenerateLevels : BaseMonoBehaviour
     private GridTiles grid;
     private ShooterContainer _shooterContainer;
     private string levelName = "LevelGenerator";
-    public static int LevelsCount;
+    public static int LevelsCount = 0;
     [SerializeField] private List<LevelGenerator> levelAsset;
+    public int forceLevel = 2;
 
     protected override void Start()
     {
         base.Start();
-        grid = FindObjectOfType<GridTiles>();
-        _shooterContainer = FindObjectOfType<ShooterContainer>();
-        LevelsCount = 1;
-        var level = levelAsset[LevelsCount];
+        grid =  FindAnyObjectByType<GridTiles>();
+        _shooterContainer = FindAnyObjectByType<ShooterContainer>();
+        var level = levelAsset[forceLevel == -1 ? LevelsCount : forceLevel];
         if (level == null)
             return;
 
