@@ -68,15 +68,15 @@ public class LevelEditor : EditorWindow
     private void DrawHeader()
     {
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-        EditorGUILayout.LabelField("Configuración", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Settings", EditorStyles.boldLabel);
 
         EditorGUI.BeginChangeCheck();
-        int newRows = Mathf.Clamp(EditorGUILayout.IntField("Filas", rows), 1, 128);
-        int newCols = Mathf.Clamp(EditorGUILayout.IntField("Columnas", cols), 1, 128);
-        cellSize = Mathf.Clamp(EditorGUILayout.FloatField("Tamaño celda", cellSize), 12f, 60f);
+        int newRows = Mathf.Clamp(EditorGUILayout.IntField("Rows", rows), 1, 128);
+        int newCols = Mathf.Clamp(EditorGUILayout.IntField("Columns", cols), 1, 128);
+        cellSize = Mathf.Clamp(EditorGUILayout.FloatField("Cell Size", cellSize), 12f, 60f);
         
         EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.LabelField("Color activo", GUILayout.Width(100));
+        EditorGUILayout.LabelField("Active Color", GUILayout.Width(100));
         activeColor = (ColorTile)EditorGUILayout.EnumPopup(activeColor);
         GUILayout.Space(8);
         var prev = GUI.backgroundColor;
@@ -96,12 +96,12 @@ public class LevelEditor : EditorWindow
 
         EditorGUILayout.Space(4);
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("Limpiar (Blanco)"))
+        if (GUILayout.Button("Clean (White)"))
         {
             ApplyToAll((t) => t.color = ColorTile.White);
         }
 
-        if (GUILayout.Button("Rellenar con color activo"))
+        if (GUILayout.Button("Fill with Active Color"))
         {
             ApplyToAll((t) => t.color = activeColor);
         }
@@ -153,7 +153,7 @@ public class LevelEditor : EditorWindow
 
     private void DrawGrid()
     {
-        EditorGUILayout.LabelField("Grilla", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Grid", EditorStyles.boldLabel);
 
         float gridWidth = cols * (cellSize + cellPadding) + cellPadding;
         float gridHeight = rows * (cellSize + cellPadding) + cellPadding;
@@ -182,8 +182,7 @@ public class LevelEditor : EditorWindow
                 }
 
                 GUI.backgroundColor = prevCol;
-
-                // Borde
+                
                 Handles.color = Color.black * 0.5f;
                 Handles.DrawAAPolyLine(2f, new Vector3[]
                 {
@@ -215,7 +214,7 @@ public class LevelEditor : EditorWindow
     private void DrawCounts()
     {
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-        EditorGUILayout.LabelField("Conteo por color", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Count by color", EditorStyles.boldLabel);
 
         var counts = Enum.GetValues(typeof(ColorTile))
             .Cast<ColorTile>()
@@ -246,26 +245,26 @@ public class LevelEditor : EditorWindow
     private void DrawExport()
     {
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-        EditorGUILayout.LabelField("Exportar", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Export", EditorStyles.boldLabel);
 
-        EditorGUILayout.HelpBox("Exporta la grilla actual a un ScriptableObject LevelGenerator.", MessageType.Info);
+        EditorGUILayout.HelpBox("Export the actual grid in a ScriptableObject LevelGenerator.", MessageType.Info);
 
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("Crear nuevo LevelGenerator"))
+        if (GUILayout.Button("Create a new LevelGenerator"))
         {
             CreateOrOverwriteLevelGenerator(null);
         }
 
         LevelGenerator targetAsset = null;
         targetAsset =
-            (LevelGenerator)EditorGUILayout.ObjectField("Guardar en:", targetAsset, typeof(LevelGenerator), false);
+            (LevelGenerator)EditorGUILayout.ObjectField("Save in:", targetAsset, typeof(LevelGenerator), false);
 
         EditorGUILayout.EndHorizontal();
 
-        if (GUILayout.Button("Exportar a archivo..."))
+        if (GUILayout.Button("Export a file..."))
         {
-            string path = EditorUtility.SaveFilePanelInProject("Guardar LevelGenerator", "LevelGenerator", "asset",
-                "Selecciona la ubicación para guardar");
+            string path = EditorUtility.SaveFilePanelInProject("Save LevelGenerator", "LevelGenerator", "asset",
+                "Select a file to save the LevelGenerator to");
             if (!string.IsNullOrEmpty(path))
             {
                 var asset = ScriptableObject.CreateInstance<LevelGenerator>();
@@ -283,7 +282,7 @@ public class LevelEditor : EditorWindow
     {
         if (existing == null)
         {
-            var asset = ScriptableObject.CreateInstance<LevelGenerator>();
+            var asset = CreateInstance<LevelGenerator>();
             FillLevelGenerator(asset);
 
             const string resourcesDir = "Assets/Resources";

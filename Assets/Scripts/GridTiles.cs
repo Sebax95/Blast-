@@ -17,7 +17,8 @@ public class GridTiles: BaseMonoBehaviour, IObservable
     private ObjectPool<TileObject> _tileObjectPool;
     [SerializeField]
     private TileObject _tileObjectPrefab;
-    
+
+    private int _totalTiles;
     private List<IObserver> _allObservers = new();
     private Dictionary<int, bool> _columnBusy = new();
     private Dictionary<int, Queue<Action>> _columnQueues = new();
@@ -54,7 +55,13 @@ public class GridTiles: BaseMonoBehaviour, IObservable
         obj.transform.SetParent(transform);
         return obj;
     }
-    private void ReturnTileObjectToPool(TileObject obj) => _tileObjectPool.ReturnObject(obj);
+    private void ReturnTileObjectToPool(TileObject obj)
+    {
+        _tileObjectPool.ReturnObject(obj);
+        _totalTiles--;
+        GameManager.OnGridTilesChanged?.Invoke(_totalTiles);
+        
+    }
     
 
     #endregion
@@ -63,6 +70,7 @@ public class GridTiles: BaseMonoBehaviour, IObservable
 
     public void BuildFromLevel(LevelGenerator level)
     {
+        _totalTiles = 0;
         gridSizeX = level.cols;
         gridSizeY = level.rows;
         ClearAll();
@@ -79,11 +87,12 @@ public class GridTiles: BaseMonoBehaviour, IObservable
                 var obj = GetTileObjectFromPool();
                 BindTileObject(obj, t);
                 _tileObjects[x, y] = obj;
+                _totalTiles++;
             }
         }
     }
 
-    public void ClearAll()
+    private void ClearAll()
     {
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
@@ -139,18 +148,19 @@ public class GridTiles: BaseMonoBehaviour, IObservable
     }
     public void RemoveFirstLayerAtColumn(int xRow)
     {
-        if (_tiles == null) { ReleaseColumn(xRow); return; }
-        if (xRow < 0 || xRow >= gridSizeX) { ReleaseColumn(xRow); return; }
+        if (_tiles == null || xRow < 0 || xRow >= gridSizeX)
+        {
+            ReleaseColumn(xRow);
+            return;
+        }
 
         _columnBusy.TryAdd(xRow, false);
         if (!_columnQueues.ContainsKey(xRow)) 
             _columnQueues[xRow] = new();
 
         _columnQueues[xRow].Enqueue(() => ProcessColumnRemoval(xRow));
-        if (_columnBusy[xRow] == true) // ya está reclamada por TryClaimColumn
-            DequeueAndRun(xRow);
-        else
-            DequeueAndRun(xRow);
+
+        DequeueAndRun(xRow);
     }
 
     private void ProcessColumnRemoval(int xRow)

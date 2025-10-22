@@ -14,6 +14,7 @@ public class MergeAction : BaseMonoBehaviour
     private IEnumerator MergeAfterDelay(float seconds)
     {
         yield return new WaitForSeconds(seconds);
+        SoundManager.PlaySound("Merge");
         _shooter.StartShooting();
     }
 

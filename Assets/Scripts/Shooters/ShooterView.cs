@@ -17,6 +17,7 @@ public class ShooterView : BaseMonoBehaviour
     public void SetColor(ColorTile color) => _sp.color = Utilities.GetColorTile(color);
     public void SetText(string text) => _bulletsText.SetText(text);
 
+    public void SoundSlot() => SoundManager.PlaySound("SlotShooter");
     public void Die()
     {
         transform.DOScale(Vector3.one * 1.05f, 0.2f)

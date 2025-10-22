@@ -10,30 +10,31 @@ using Random = UnityEngine.Random;
 public class SoundManager : BaseMonoBehaviour
 {
     public static SoundManager Instance;
-    
+
     [SerializeField] private AudioMixer mixer;
     [SerializeField] private List<Sound> gameplaySounds;
     [SerializeField] private float localSoundSpatialBlend = 0.5f;
-    
+
     private List<AudioSource> audioSourcePlaying = new();
     private List<(string, AudioSource)> _actualAudios;
 
     private ObjectPool<AudioSource> _audioPool;
-    
+
     private void Awake()
     {
         if (Instance != null)
             Destroy(this);
         else
             Instance = this;
-        InitializeDictionary();
 
-        _audioPool = new ObjectPool<AudioSource>(CreateAudioSource, TurnOn, TurnOff, 5);
-        
-        UpdateManager.Instance.OnPause += PauseAudios;
-        UpdateManager.Instance.OnUnPause += UnPauseAudios;
+        _audioPool = new ObjectPool<AudioSource>(CreateAudioSource, TurnOn, TurnOff, 10);
+
+        UpdateManager.OnPause += PauseAudios;
+        UpdateManager.OnUnPause += UnPauseAudios;
         _actualAudios = new();
     }
+
+    #region Pooling
 
     private AudioSource CreateAudioSource()
     {
@@ -54,79 +55,68 @@ public class SoundManager : BaseMonoBehaviour
     {
         audioSource.clip = null;
     }
+
     private void TurnOff(AudioSource audioSource)
     {
         audioSource.gameObject.name = "Audiosource";
         audioSource.Stop();
         audioSource.gameObject.SetActive(false);
     }
-    
-    #region OldSoundManager
-    
 
-    private void InitializeDictionary()
-    {
-        //Blocky
-        _soundSkin[Skin.Blocky] = new Dictionary<TypeSFX, string>();
-        
-    }
-    
+    #endregion
+
+    #region SoundManager
+
     public void SetNewVolumeSfx(float value) => SetNewVolume("Sfx", value);
 
     public void SetNewVolumeMusic(float value) => SetNewVolume("Music", value);
 
-    public void FadeOutMusic(float targetVolume, Action callback)
+    public void FadeOutMusic(string audioSound, float targetVolume, Action callback)
     {
-        var audio = SearchAudioSource(SkinManager.Instance.soundName);
+        var audio = SearchAudioSource(audioSound);
+        AudioSource auido = null;
         DOTween.To(() => audio.volume, x => audio.volume = x, targetVolume, 4f).SetEase(Ease.InSine)
-            .OnComplete(()=>
+            .OnComplete(() =>
             {
                 PauseAudios();
                 callback?.Invoke();
             });
     }
 
-    float newValue;
-
 
     private void SetNewVolume(string type, float value)
     {
         mixer.GetFloat(type, out var oldValue);
-        newValue = SetMixerValue(type, value);
+        float newValue = SetMixerValue(type, value);
     }
 
-    public void LoadVolumeSfx(float value)
-    {
-        SetMixerValue("SFX", value);
-    }
+    public void LoadVolumeSfx(float value) => SetMixerValue("SFX", value);
 
-    public void LoadVolumeMusic(float value)
-    {
-        SetMixerValue("Music", value);
-    }
+    public void LoadVolumeMusic(float value) => SetMixerValue("Music", value);
 
-    float newValueM;
     private float SetMixerValue(string type, float value)
     {
-        newValueM = -Mathf.Pow(81, 1f - value) + 1;
+        float newValueM = -Mathf.Pow(81, 1f - value) + 1;
         mixer.SetFloat(type, newValueM);
         return newValueM;
     }
-    
+
     public static void PlaySound(string soundName, bool deleteOnFinish = true)
     {
-        if(Instance)
+        if (Instance)
             Instance.PlaySound(soundName, true, new Vector3(), deleteOnFinish);
     }
 
-    public static void PlaySound(string soundName, float delay, bool isGlobal = true, Vector3 position = new ()) => Instance.StartCoroutine(Instance.DelayedPlay(soundName, delay, isGlobal, position));
+    public static void PlaySound(string soundName, float delay, bool isGlobal = true, Vector3 position = new()) =>
+        Instance.StartCoroutine(Instance.DelayedPlay(soundName, delay, isGlobal, position));
 
-    public static void PlaySound(string soundName, float delay, bool deleteOnFinish) => Instance.StartCoroutine(Instance.DelayedPlay(soundName, delay, deleteOnFinish));
+    public static void PlaySound(string soundName, float delay, bool deleteOnFinish) =>
+        Instance.StartCoroutine(Instance.DelayedPlay(soundName, delay, deleteOnFinish));
 
     public IEnumerator DelayedPlay(string soundName, float delay, bool deleteOnFinish = true)
     {
         yield return new WaitForSecondsRealtime(delay);
-        PlaySound(soundName,deleteOnFinish);
+        PlaySound(soundName, deleteOnFinish);
     }
 
     public IEnumerator DelayedPlay(string soundName, float delay, bool isGlobal = true, Vector3 position = new())
@@ -137,7 +127,7 @@ public class SoundManager : BaseMonoBehaviour
 
     public static void PlaySound(string soundName, Vector3 position)
     {
-        if(Instance)
+        if (Instance)
             Instance.PlaySound(soundName, false, position);
     }
 
@@ -146,21 +136,20 @@ public class SoundManager : BaseMonoBehaviour
     /// </summary>
     private void PlaySound(string soundName, bool isGlobalSound, Vector3 position = new(), bool deleteOnFinish = true)
     {
-        if (gameplaySounds.Any(x => x.name == soundName) == false) //TODO: linq search twice for each played sound
+        if (gameplaySounds.All(x => x.name != soundName))
         {
-            Debug.LogWarning($"SoundManger : There is no {soundName} sound loaded in the sound manager, please add one");
+            Debug.LogWarning(
+                $"SoundManger : There is no {soundName} sound loaded in the sound manager, please add one");
             return;
         }
 
         var audioSource = _audioPool.GetObject();
-        var sound = gameplaySounds.Find(x => x.name == soundName); //TODO: remove string usage
+        var sound = gameplaySounds.Find(x => x.name == soundName);
         PrepareAudioSource(audioSource, sound, isGlobalSound, position);
         audioSource.Play();
 
-        if (sound.musicLoop == false && deleteOnFinish)
-        {
+        if (!sound.musicLoop && deleteOnFinish)
             StartCoroutine(PoolAudioSourceOnStop(sound, audioSource));
-        }
     }
 
     /// <summary>
@@ -168,8 +157,8 @@ public class SoundManager : BaseMonoBehaviour
     /// </summary>
     private void PrepareAudioSource(AudioSource audioSource, Sound sound, bool isGlobalSound, Vector3 position)
     {
-        audioSource.outputAudioMixerGroup = mixer.FindMatchingGroups(sound.musicLoop ? "Music" : "SFX")[0];
-        audioSource.clip = sound.clip;
+        audioSource.outputAudioMixerGroup = mixer.FindMatchingGroups(sound.musicLoop ? "Music" : "Sfx")[0];
+        audioSource.resource = sound.clip;
         audioSource.loop = sound.musicLoop;
         audioSource.volume = sound.volume;
         audioSource.pitch = 1;
@@ -181,22 +170,28 @@ public class SoundManager : BaseMonoBehaviour
             audioSource.gameObject.transform.position = position;
         }
         else
-        {
             audioSource.spatialBlend = 0;
-        }
     }
-    
- 
+
+
     public AudioSource SearchAudioSource(string soundName)
     {
         var tuple = _actualAudios.FirstOrDefault(x => x.Item1 == soundName);
         return tuple != default ? tuple.Item2 : null;
     }
 
+    public static void ChangePitch(string soundName, float pitch)
+    {
+        var audio = Instance.SearchAudioSource(soundName);
+        if(pitch < 0)
+            audio.time = audio.clip.length-1;
+        audio.pitch = pitch;
+    }
+    
     public void StopAudio(string soundName)
     {
         var audio = SearchAudioSource(soundName);
-        if(audio == null)
+        if (audio == null)
             return;
         audio.Stop();
         _actualAudios.Remove((name, audio));
@@ -218,26 +213,17 @@ public class SoundManager : BaseMonoBehaviour
 
     public void PauseAudios()
     {
-        foreach (var audioSource in audioSourcePlaying) 
+        foreach (var audioSource in audioSourcePlaying)
             audioSource.Pause(); //TODO: doesnt pause pooling coroutine
     }
 
     public void UnPauseAudios()
     {
-        foreach (var audioSource in audioSourcePlaying) 
+        foreach (var audioSource in audioSourcePlaying)
             audioSource.UnPause();
     }
 
     #endregion
-    
-}
-public enum TypeSFX
-{
-    Crumbling,
-    Grass,
-    Obstacle,
-    Springboard,
-    Static
 }
 
 [System.Serializable]

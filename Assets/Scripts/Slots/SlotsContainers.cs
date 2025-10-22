@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -89,9 +90,35 @@ public class SlotsContainers : BaseMonoBehaviour
         if (TryWindow(index - 2, index - 1, index, out var t) || TryWindow(index - 1, index, index + 1, out t) ||
             TryWindow(index, index + 1, index + 2, out t)) 
             ExecuteMerge(t.left, t.right, t.mid);
+        else
+            CheckFullSlots();
         
     }
 
+    private void CheckFullSlots()
+    {
+        bool allSlotsFull = slots != null && slots.Count > 0 && slots.All(s => s != null && s.isUsed);
+        if (!allSlotsFull)
+            return;
+
+        StartCoroutine(CheckFullSlotsDelayed(1f));
+    }
+
+    private IEnumerator CheckFullSlotsDelayed(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        
+        bool allSlotsFull = slots != null && slots.Count > 0 && slots.All(s => s != null && s.isUsed);
+        if (!allSlotsFull)
+            yield break;
+
+        bool allBlocked = slots
+            .Select(slot => slot?.GetShooter())
+            .All(shooter => shooter != null && !shooter.canProceed);
+
+        if (allBlocked)
+            GameManager.OnGameOver?.Invoke();
+    }
 
     private void ExecuteMerge(Shooter left, Shooter right, Shooter middle)
     {

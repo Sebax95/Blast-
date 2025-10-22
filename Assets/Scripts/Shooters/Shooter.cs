@@ -14,7 +14,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     public Slot slotSelected;
     public TileObject Target { get; set; }
     private GridTiles _gridTiles;
-    private bool _canProceed;
+    public bool canProceed;
 
     private SlotsContainers _slotsContainers;
     
@@ -35,7 +35,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _gridTiles = FindAnyObjectByType<GridTiles>();
         _view = GetComponent<ShooterView>();
         _bulletSpawner = FindAnyObjectByType<BulletSpawner>();
-        _canProceed = true;
+        canProceed = true;
         _isUsed = false;
     }
 
@@ -51,29 +51,39 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     {
         transform.DOMove(slotSelected.transform.position, .2f).SetEase(Ease.InCubic).OnComplete(() =>
         {
+            
             StartShooting();
+            _view.SoundSlot();
             _slotsContainers.OnShooterAdded?.Invoke(this);
+            
         });
         transform.SetParent(slotSelected.transform);
     }
     
-    public void StartShooting() => _ShootCoroutine = StartCoroutine(Shoot());
+    public void StartShooting()
+    {
+        if (_ShootCoroutine != null) return;
+        _ShootCoroutine = StartCoroutine(Shoot());
+    }
 
     public void StopBullet()
     {
-        StopCoroutine(_ShootCoroutine);
+        if (_ShootCoroutine != null)
+        {
+            StopCoroutine(_ShootCoroutine);
+            _ShootCoroutine = null;
+        }
     }
 
     private IEnumerator Shoot()
     {
-        while (quantityBullets >= 0)
+        while (quantityBullets > 0)
         {
             ChangeTarget();
-            yield return new WaitUntil(()=> _canProceed);
-
+            yield return new WaitUntil(()=> canProceed);
             if (Target == null || Target.Tile == null)
             {
-                _canProceed = false;
+                canProceed = false;
                 yield return null;
                 continue;
             }
@@ -82,7 +92,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
 
             if (!_gridTiles.TryClaimColumn(columnX))
             {
-                _canProceed = false;
+                canProceed = false;
                 yield return null;
                 continue;
             }
@@ -97,38 +107,35 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     
     private void SetupBullet(int columnX)
     {
-        _canProceed = false;
+        canProceed = false;
         var bullet = _bulletSpawner.GetBullet();
         bullet.transform.SetParent(transform);
         bullet.transform.localPosition = Vector3.zero;
         bullet.SetTrailColor(Utilities.GetColorTile(color));
-        
+
         var hasTarget = Target != null && Target.Tile != null;
 
-        bool called = false;
-        void OnShot(Bullet b)
+        bool shotResolved = false;
+
+        void SafeShot(Bullet b)
         {
-            if (called) return;
-            called = true;
+            if (shotResolved) return;
+            shotResolved = true;
             BulletShot(b, columnX, hasTarget);
         }
-        DOVirtual.DelayedCall(1.0f, () =>
-        {
-            if (called) return;
-            called = true;
-            BulletShot(bullet, columnX, hasTarget);
-        });
-
-        if (hasTarget) 
-            bullet.MoveToTarget(Target.transform, OnShot);
-        else
-            OnShot(bullet);
         
+        DOVirtual.DelayedCall(1.0f, () => SafeShot(bullet));
+
+        if (hasTarget)
+            bullet.MoveToTarget(Target.transform, SafeShot);
+        else
+            SafeShot(bullet);
+
         bullet.EnableTrail(true);
     }
     private void BulletShot(Bullet bullet, int columnX, bool hadTargetAtFireTime)
     {
-        quantityBullets--;
+        quantityBullets = Mathf.Max(0, quantityBullets - 1);
 
         if (hadTargetAtFireTime)
             _gridTiles.RemoveFirstLayerAtColumn(columnX);
@@ -136,7 +143,14 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             _gridTiles.ReleaseColumn(columnX);
 
         _bulletSpawner.ReturnBullet(bullet);
-        _canProceed = true;
+        UpdateBulletsText();
+        canProceed = true;
+
+        if (quantityBullets == 0)
+        {
+            StopBullet();
+            ShooterDead();
+        }
     }
     private bool ChangeTarget()
     {
@@ -149,13 +163,13 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             if (targetObj != null)
             {
                 Target = targetObj;
-                _canProceed = true;
+                canProceed = true;
                 return true;
             }
         }
 
         Target = null;
-        _canProceed = false;
+        canProceed = false;
         return false;
     }
 
@@ -170,9 +184,9 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     {
         if(message != ObserverMessage.UpdateRow)
             return;
-        if (_canProceed) 
+        if (canProceed) 
             return;
-        _canProceed = ChangeTarget();
+        canProceed = ChangeTarget();
     }
 
     public void OnPointerClick(PointerEventData eventData)

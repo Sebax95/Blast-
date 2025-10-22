@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GenerateLevels : BaseMonoBehaviour
@@ -5,15 +7,16 @@ public class GenerateLevels : BaseMonoBehaviour
     private GridTiles grid;
     private ShooterContainer _shooterContainer;
     private string levelName = "LevelGenerator";
-    [SerializeField] private LevelGenerator levelAsset;
+    public static int LevelsCount;
+    [SerializeField] private List<LevelGenerator> levelAsset;
 
     protected override void Start()
     {
         base.Start();
         grid = FindObjectOfType<GridTiles>();
         _shooterContainer = FindObjectOfType<ShooterContainer>();
-
-        var level = levelAsset ?? LoadFromResources(levelName);
+        LevelsCount = 1;
+        var level = levelAsset[LevelsCount];
         if (level == null)
             return;
 

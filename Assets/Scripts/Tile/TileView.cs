@@ -45,5 +45,9 @@ public class TileView : BaseMonoBehaviour
     public void OrderLayer(int y) => _sp.sortingOrder = -y;
 
     public void DeathAnimation(Action callback) => transform.DOScale(Vector3.one * 0.2f, 0.3f).SetEase(Ease.InElastic)
-        .OnComplete(() => callback?.Invoke());
+        .OnComplete(() =>
+        {
+            SoundManager.PlaySound("Tile Explode");
+            callback?.Invoke();
+        });
 }
