@@ -4,8 +4,6 @@
 TagManager:
   serializedVersion: 3
   tags:
-  - Tag2
-  - Tag3
   - Tag4
   - Tag5
   - Tag6
@@ -15,6 +13,8 @@ TagManager:
   - Tag10
   - GFUICanvas
   - Win
+  - Lose
+  - Thanks
   layers:
   - Default
   - TransparentFX

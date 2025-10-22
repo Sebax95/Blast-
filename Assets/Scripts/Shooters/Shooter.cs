@@ -26,6 +26,9 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     private bool _isUsed;
     public bool IsPickeable { get; set; }
 
+    public bool isShooting;
+    public bool HasNextShotIntent => quantityBullets > 0 && (isShooting || canProceed || Target != null);
+
     private void OnEnable() => _gridTiles.Subscribe(this);
 
     private void OnDisable() => _gridTiles.Unsubscribe(this);
@@ -37,6 +40,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _bulletSpawner = FindAnyObjectByType<BulletSpawner>();
         canProceed = true;
         _isUsed = false;
+        isShooting = false;
     }
 
     protected override void Start()
@@ -55,7 +59,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             StartShooting();
             _view.SoundSlot();
             _slotsContainers.OnShooterAdded?.Invoke(this);
-            
+            _slotsContainers?.RequestCheckFullSlots();
         });
         transform.SetParent(slotSelected.transform);
     }
@@ -80,6 +84,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         while (quantityBullets > 0)
         {
             ChangeTarget();
+            isShooting = false;
             yield return new WaitUntil(()=> canProceed);
             if (Target == null || Target.Tile == null)
             {
@@ -108,6 +113,8 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
     private void SetupBullet(int columnX)
     {
         canProceed = false;
+        isShooting = true;
+        _slotsContainers?.RequestCheckFullSlots();
         var bullet = _bulletSpawner.GetBullet();
         bullet.transform.SetParent(transform);
         bullet.transform.localPosition = Vector3.zero;
@@ -141,10 +148,11 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             _gridTiles.RemoveFirstLayerAtColumn(columnX);
         else
             _gridTiles.ReleaseColumn(columnX);
-
+        isShooting = false;
         _bulletSpawner.ReturnBullet(bullet);
         UpdateBulletsText();
         canProceed = true;
+        _slotsContainers?.RequestCheckFullSlots();
 
         if (quantityBullets == 0)
         {
@@ -164,12 +172,16 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
             {
                 Target = targetObj;
                 canProceed = true;
+                _slotsContainers?.RequestCheckFullSlots();
                 return true;
             }
         }
 
         Target = null;
         canProceed = false;
+        
+        _slotsContainers?.RequestCheckFullSlots();
+
         return false;
     }
 
@@ -178,7 +190,7 @@ public class Shooter : BaseMonoBehaviour, IObserver, IPointerClickHandler
         _view.Die();
         slotSelected.DieShooter();
     }
-    
+
 
     public void OnNotify(ObserverMessage message)
     {

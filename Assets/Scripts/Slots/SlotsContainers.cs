@@ -15,6 +15,13 @@ public class SlotsContainers : BaseMonoBehaviour
     /// shooter -> index slot
     /// </summary>
     private Dictionary<Shooter,int> _shooterSlotDic = new();
+    private Coroutine _checkFullSlotsCoroutine; 
+    private int _stableChecks;
+    [SerializeField] private int _requiredStableChecks = 3;
+    [SerializeField] private float _stableInterval = 0.5f; 
+    
+    private Coroutine _loseTimerCoroutine;
+    [SerializeField] private float _loseNoShotWindow = 5f;
 
     protected override void Start()
     {
@@ -97,27 +104,49 @@ public class SlotsContainers : BaseMonoBehaviour
 
     private void CheckFullSlots()
     {
-        bool allSlotsFull = slots != null && slots.Count > 0 && slots.All(s => s != null && s.isUsed);
+        bool allSlotsFull = slots != null && slots.Count > 0 &&
+                            slots.All(s => s != null && s.isUsed);
         if (!allSlotsFull)
             return;
-
-        StartCoroutine(CheckFullSlotsDelayed(5f));
+        
+        bool anyShooting = slots.Any(s => s?.GetShooter() != null && s.GetShooter().isShooting);
+        if (anyShooting)
+            return;
+        
+        _loseTimerCoroutine ??= StartCoroutine(LoseTimerNoShots());
     }
 
-    private IEnumerator CheckFullSlotsDelayed(float delay)
+    public void RequestCheckFullSlots()
     {
-        yield return new WaitForSeconds(delay);
+        CheckFullSlots();
+    }
+
+    private IEnumerator LoseTimerNoShots()
+    {
+        float elapsed = 0f;
+
+        while (elapsed < _loseNoShotWindow)
+        {
+            bool allSlotsFull = slots != null && slots.Count > 0 &&
+                                slots.All(s => s != null && s.isUsed);
+            if (!allSlotsFull)
+            {
+                _loseTimerCoroutine = null;
+                yield break;
+            }
+            
+            bool anyShooting = slots.Any(s => s?.GetShooter() != null && s.GetShooter().isShooting);
+            if (anyShooting)
+                elapsed = 0f;
+            else
+                elapsed += Time.deltaTime;
+            
+
+            yield return null;
+        }
         
-        bool allSlotsFull = slots != null && slots.Count > 0 && slots.All(s => s != null && s.isUsed);
-        if (!allSlotsFull)
-            yield break;
-
-        bool allBlocked = slots
-            .Select(slot => slot?.GetShooter())
-            .All(shooter => shooter != null && !shooter.canProceed);
-
-        if (allBlocked)
-            GameManager.OnGameOver?.Invoke();
+        GameManager.OnGameOver?.Invoke();
+        _loseTimerCoroutine = null;
     }
 
     private void ExecuteMerge(Shooter left, Shooter right, Shooter middle)

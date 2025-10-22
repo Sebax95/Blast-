@@ -10,11 +10,13 @@ public class GameManager : BaseMonoBehaviour
     public static GameManager Instance;
     public static Action<int> OnGridTilesChanged;
     public static Action OnGameOver;
-
     
-    [SerializeField]
-    private GameObject WinPanel;
-    private Button _restartButton; 
+    private GameObject _winPanel;
+    private GameObject _losePanel;
+    private GameObject _thanksPanel;
+    private Button _restartButtonWin; 
+    private Button _restartButtonLose; 
+    private Button _quitButton; 
     
     private void Awake()
     {
@@ -34,28 +36,50 @@ public class GameManager : BaseMonoBehaviour
     protected override void Start()
     {
         base.Start();
-        WinPanel = Utilities.FindByTagInactive("Win");
+        _winPanel = Utilities.FindByTagInactive("Win");
     }
 
     private void Init()
     {
-        if(!WinPanel)
-            WinPanel = Utilities.FindByTagInactive("Win");
-        if(!_restartButton)
-            _restartButton = WinPanel.GetComponentInChildren<Button>();
-        _restartButton.onClick.AddListener(RestartLevel);
-        
-        OnGridTilesChanged -= CheckGridTiles;
-        OnGameOver -= Lose;
+        if (SceneManager.GetActiveScene().name == "Game")
+        {
 
-        OnGridTilesChanged += CheckGridTiles;
-        OnGameOver += Lose;
-        
+            if (!_winPanel)
+                _winPanel = Utilities.FindByTagInactive("Win");
+            if (!_losePanel)
+                _losePanel = Utilities.FindByTagInactive("Lose");
+            if (!_thanksPanel)
+                _thanksPanel = Utilities.FindByTagInactive("Thanks");
+            if (!_restartButtonWin)
+                _restartButtonWin = _winPanel.GetComponentInChildren<Button>();
+            if (!_restartButtonLose)
+                _restartButtonLose = _losePanel.GetComponentInChildren<Button>();
+            if (!_quitButton)
+                _quitButton = _thanksPanel.GetComponentInChildren<Button>();
+
+            _restartButtonWin.onClick.AddListener(RestartLevel);
+            _restartButtonLose.onClick.AddListener(RestartLevel);
+            _quitButton.onClick.AddListener(Quit);
+
+            _restartButtonWin.interactable = false;
+
+
+            _winPanel.SetActive(false);
+            _losePanel.SetActive(false);
+            _thanksPanel.SetActive(false);
+
+            OnGridTilesChanged -= CheckGridTiles;
+            OnGameOver -= Lose;
+
+            OnGridTilesChanged += CheckGridTiles;
+            OnGameOver += Lose;
+        }
+
         var sceneName = SceneManager.GetActiveScene().name;
         if (sceneName == "Game")
         {
             SoundManager.Instance?.StopAudio("Menu Background");
-            SoundManager.PlaySound("Music Background");
+            SoundManager.PlaySound(GenerateLevels.LevelsCount % 2 == 0 ? "Music Background" : "Music Background 2");
         }
         else
         {
@@ -63,7 +87,7 @@ public class GameManager : BaseMonoBehaviour
             SoundManager.PlaySound("Menu Background");
         }
 
-        if (WinPanel) WinPanel.SetActive(false);
+        if (_winPanel) _winPanel.SetActive(false);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => Init();
@@ -82,13 +106,19 @@ public class GameManager : BaseMonoBehaviour
     
     private void Win()
     {
-        WinPanel.SetActive(true);
-        Vector3 initialScale = WinPanel.transform.localScale;
-        WinPanel.transform.localScale = Vector3.zero;
+        if(GenerateLevels.LevelsCount == 20)
+        {
+            Thanks();
+            return;
+        }
+        _winPanel.SetActive(true);
+        Vector3 initialScale = _winPanel.transform.localScale;
+        _winPanel.transform.localScale = Vector3.zero;
         SoundManager.PlaySound("Win Claps");
-        WinPanel.transform.DOScale(initialScale, 1f).SetEase(Ease.OutBack).OnComplete(() =>
+        _winPanel.transform.DOScale(initialScale, 1f).SetEase(Ease.OutBack).OnComplete(() =>
         {
             GenerateLevels.LevelsCount++;
+            _restartButtonWin.interactable = true;
         });
         
     }
@@ -97,6 +127,18 @@ public class GameManager : BaseMonoBehaviour
     {
         SoundManager.Instance.StopAudio("Music Background");
         SoundManager.PlaySound("Lose");
+        _losePanel.SetActive(true);
+        Vector3 initialScale = _losePanel.transform.localScale;
+        _losePanel.transform.localScale = Vector3.zero;
+        _losePanel.transform.DOScale(initialScale, 1f).SetEase(Ease.OutBack);
+    }
+
+    private void Thanks()
+    {
+        _thanksPanel.SetActive(true);
+        Vector3 initialScale = _thanksPanel.transform.localScale;
+        _thanksPanel.transform.localScale = Vector3.zero;
+        _thanksPanel.transform.DOScale(initialScale, 1f).SetEase(Ease.OutBack);
     }
 
     public void RestartLevel()
@@ -108,7 +150,6 @@ public class GameManager : BaseMonoBehaviour
     {
         OnGridTilesChanged -= CheckGridTiles;
         OnGameOver -= Lose;
-        // NO desuscribas sceneLoaded aquí; se maneja en OnDisable
     }
     
     private void OnDisable()
